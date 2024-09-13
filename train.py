@@ -7,11 +7,15 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from data import CustomDataset 
+
+from data import CustomDataset
+from data import TransformSelector
+from src import Loss
+from model import ModelSelector
 
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='hyperparameters for training')
-    parser.add_argument('--epochs', type = int, default=10)
+    parser.add_argument('--epochs', type = int, default=5)
     parser.add_argument('--batch_size', type = int, default=64)
     parser.add_argument('--lr', type = int, default=0.001)
     parser.add_argument('--scheduler_step_size', type = int, default=30)
@@ -118,9 +122,7 @@ class Trainer:
             self.save_model(epoch, val_loss)
             self.scheduler.step()
 
-
-if __name__ == '__main__':
-    args = get_args()
+def main(opt):
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -141,24 +143,99 @@ if __name__ == '__main__':
         stratify=train_info['target']
     )
 
+    # 학습에 사용할 Transform을 선언.
+    transform_selector = TransformSelector(
+        transform_type = "albumentations"
+    )
+    train_transform = transform_selector.get_transform(is_train=True)
+    val_transform = transform_selector.get_transform(is_train=False)
+
     # 학습에 사용할 Dataset을 선언.
     train_dataset = CustomDataset(
         root_dir=traindata_dir,
         info_df=train_df,
+        transform=train_transform
     )
     val_dataset = CustomDataset(
         root_dir=traindata_dir,
         info_df=val_df,
+        transform=val_transform
     )
 
+    batch_size = opt.batch_size
     # 학습에 사용할 DataLoader를 선언.
     train_loader = DataLoader(
         train_dataset, 
-        batch_size=64, 
+        batch_size=batch_size, 
         shuffle=True
     )
     val_loader = DataLoader(
         val_dataset, 
-        batch_size=64, 
+        batch_size=batch_size, 
         shuffle=False
     )
+
+    # 학습에 사용할 Model을 선언.
+    model_selector = ModelSelector(
+        model_type='timm', 
+        num_classes=num_classes,
+        model_name='resnet18', 
+        pretrained=True
+    )
+    model = model_selector.get_model()
+
+    # 선언된 모델을 학습에 사용할 장비로 셋팅.
+    model.to(device)
+
+    # 학습에 사용할 optimizer를 선언하고, learning rate를 지정
+    lr = opt.lr
+    optimizer = optim.Adam(
+    model.parameters(), 
+    lr=lr
+    )
+
+    # 스케줄러 초기화
+    scheduler_step_size = opt.scheduler_step_size
+    scheduler_step_size = scheduler_step_size  # 매 step마다 학습률 감소
+
+    scheduler_gamma = opt.scheduler_gamma
+    scheduler_gamma = scheduler_gamma  # 학습률을 현재의 gamma %로 감소
+
+    # 한 epoch당 step 수 계산
+    steps_per_epoch = len(train_loader)
+
+    # 2 epoch마다 학습률을 감소시키는 스케줄러 선언
+    epochs_per_lr_decay = opt.lr_decay
+    epochs_per_lr_decay = 2
+    scheduler_step_size = steps_per_epoch * epochs_per_lr_decay
+
+    scheduler = optim.lr_scheduler.StepLR(
+        optimizer, 
+        step_size=scheduler_step_size, 
+        gamma=scheduler_gamma
+    )
+    
+    # epoch 수 선언
+    epochs = opt.epochs
+
+    # 학습에 사용할 Loss를 선언.
+    loss_fn = Loss()
+
+    # 앞서 선언한 필요 class와 변수들을 조합해, 학습을 진행할 Trainer를 선언. 
+    trainer = Trainer(
+        model=model, 
+        device=device, 
+        train_loader=train_loader,
+        val_loader=val_loader, 
+        optimizer=optimizer,
+        scheduler=scheduler,
+        loss_fn=loss_fn, 
+        epochs=epochs,
+        result_path=save_result_path
+    )
+
+    trainer.train()
+
+if __name__ == '__main__':
+    opt = get_args()
+    main(opt)
