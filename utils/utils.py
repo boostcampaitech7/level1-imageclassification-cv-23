@@ -53,14 +53,25 @@ def create_dataloaders(
     
     return train_loader, val_loader
 
-def create_model(model_type, num_classes, model_name, pretrained=True):
-    model_selector = ModelSelector(
-        model_type=model_type, 
-        num_classes=num_classes,
-        model_name=model_name, 
-        pretrained=pretrained
+def test_dataloader(test_info, testdata_dir, batch_size, transform_selector):
+    test_transform = transform_selector.get_transform(is_train=False)
+
+    # 추론에 사용할 Dataset을 선언.
+    test_dataset = CustomDataset(
+        root_dir=testdata_dir,
+        info_df=test_info,
+        transform=test_transform,
+        is_inference=True
     )
-    return model_selector.get_model()
+
+    # 추론에 사용할 DataLoader를 선언.
+    test_loader = DataLoader(
+        test_dataset, 
+        batch_size=batch_size, 
+        shuffle=False,
+        drop_last=False
+    )
+    return test_loader
 
 def get_scheduler(optimizer, train_loader, epochs_per_lr_decay, scheduler_gamma):
     # 한 epoch당 step 수 계산
