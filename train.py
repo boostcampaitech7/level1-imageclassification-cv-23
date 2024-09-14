@@ -5,15 +5,13 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-import pandas as pd
-from sklearn.model_selection import train_test_split
 
-from data import CustomDataset
 from data import TransformSelector
 from src import Loss
-from model import ModelSelector
+from utils import setting_device, data_split, create_dataloaders, create_model, get_scheduler
 
 def get_args() -> argparse.Namespace:
+    # hyperparameters argument parser
     parser = argparse.ArgumentParser(description='hyperparameters for training')
     parser.add_argument('--epochs', type = int, default=5)
     parser.add_argument('--batch_size', type = int, default=64)
@@ -21,6 +19,11 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--scheduler_step_size', type = int, default=30)
     parser.add_argument('--scheduler_gamma', type = float, default=0.1)
     parser.add_argument('--lr_decay', type = int, default=2)
+
+    # utils argument parser
+    parser.add_argument('--traindata_dir', type = str, default="./data/train")
+    parser.add_argument('--traindata_info_file', type = str, default="./data/train.csv")
+    parser.add_argument('--save_result_path', type = str, default='./train_result')
     args = parser.parse_args()
     return args
 
@@ -124,67 +127,28 @@ class Trainer:
 
 def main(opt):
     
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = setting_device()
 
-    traindata_dir = "./data/train"
-    traindata_info_file = "./data/train.csv"
-    save_result_path = "./train_result"
+    traindata_dir = opt.traindata_dir
+    traindata_info_file = opt.traindata_info_file
+    save_result_path = opt.save_result_path
 
     # 학습 데이터의 class, image path, target에 대한 정보가 들어있는 csv파일을 읽기.
-    train_info = pd.read_csv(traindata_info_file)
+    train_df, val_df, num_classes = data_split(traindata_info_file)
 
-    # 총 class의 수를 측정.
-    num_classes = len(train_info['target'].unique())
-
-    # 각 class별로 8:2의 비율이 되도록 학습과 검증 데이터를 분리.
-    train_df, val_df = train_test_split(
-        train_info, 
-        test_size=0.2,
-        stratify=train_info['target']
-    )
 
     # 학습에 사용할 Transform을 선언.
     transform_selector = TransformSelector(
         transform_type = "albumentations"
     )
-    train_transform = transform_selector.get_transform(is_train=True)
-    val_transform = transform_selector.get_transform(is_train=False)
 
-    # 학습에 사용할 Dataset을 선언.
-    train_dataset = CustomDataset(
-        root_dir=traindata_dir,
-        info_df=train_df,
-        transform=train_transform
-    )
-    val_dataset = CustomDataset(
-        root_dir=traindata_dir,
-        info_df=val_df,
-        transform=val_transform
-    )
-
-    batch_size = opt.batch_size
-    # 학습에 사용할 DataLoader를 선언.
-    train_loader = DataLoader(
-        train_dataset, 
-        batch_size=batch_size, 
-        shuffle=True
-    )
-    val_loader = DataLoader(
-        val_dataset, 
-        batch_size=batch_size, 
-        shuffle=False
-    )
-
-    # 학습에 사용할 Model을 선언.
-    model_selector = ModelSelector(
-        model_type='timm', 
-        num_classes=num_classes,
-        model_name='resnet18', 
-        pretrained=True
-    )
-    model = model_selector.get_model()
-
-    # 선언된 모델을 학습에 사용할 장비로 셋팅.
+    train_loader, val_loader = create_dataloaders(train_df, 
+                                                val_df, 
+                                                traindata_dir, 
+                                                opt.batch_size, 
+                                                transform_selector)
+    
+    model = create_model(model_type='timm', num_classes=num_classes, model_name='resnet18', pretrained=True)
     model.to(device)
 
     # 학습에 사용할 optimizer를 선언하고, learning rate를 지정
@@ -194,33 +158,13 @@ def main(opt):
     lr=lr
     )
 
-    # 스케줄러 초기화
-    scheduler_step_size = opt.scheduler_step_size
-    scheduler_step_size = scheduler_step_size  # 매 step마다 학습률 감소
-
-    scheduler_gamma = opt.scheduler_gamma
-    scheduler_gamma = scheduler_gamma  # 학습률을 현재의 gamma %로 감소
-
-    # 한 epoch당 step 수 계산
-    steps_per_epoch = len(train_loader)
-
-    # 2 epoch마다 학습률을 감소시키는 스케줄러 선언
-    epochs_per_lr_decay = opt.lr_decay
-    epochs_per_lr_decay = 2
-    scheduler_step_size = steps_per_epoch * epochs_per_lr_decay
-
-    scheduler = optim.lr_scheduler.StepLR(
-        optimizer, 
-        step_size=scheduler_step_size, 
-        gamma=scheduler_gamma
-    )
+    scheduler = get_scheduler(optimizer, train_loader, opt.lr_decay, opt.scheduler_gamma)
     
-    # epoch 수 선언
-    epochs = opt.epochs
 
     # 학습에 사용할 Loss를 선언.
     loss_fn = Loss()
 
+    epochs = opt.epochs
     # 앞서 선언한 필요 class와 변수들을 조합해, 학습을 진행할 Trainer를 선언. 
     trainer = Trainer(
         model=model, 
