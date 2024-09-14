@@ -17,9 +17,9 @@ def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='hyperparameters for training')
     parser.add_argument('--epochs', type = int, default=5)
     parser.add_argument('--batch_size', type = int, default=64)
-    parser.add_argument('--lr', type = int, default=0.001)
+    parser.add_argument('--lr', type = float, default=0.001)
     parser.add_argument('--scheduler_step_size', type = int, default=30)
-    parser.add_argument('--scheduler_gamma', type = int, default=0.1)
+    parser.add_argument('--scheduler_gamma', type = float, default=0.1)
     parser.add_argument('--lr_decay', type = int, default=2)
     args = parser.parse_args()
     return args
