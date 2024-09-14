@@ -8,7 +8,8 @@ from tqdm import tqdm
 
 from data import TransformSelector
 from src import Loss
-from utils import setting_device, data_split, create_dataloaders, create_model, get_scheduler
+from utils import setting_device, data_split, create_dataloaders, get_scheduler
+from model import create_model
 
 def get_args() -> argparse.Namespace:
     # hyperparameters argument parser
@@ -24,6 +25,9 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--traindata_dir', type = str, default="./data/train")
     parser.add_argument('--traindata_info_file', type = str, default="./data/train.csv")
     parser.add_argument('--save_result_path', type = str, default='./train_result')
+
+    # model argument parser
+    parser.add_argument('--model_name', type = str, default='resnet18')
     args = parser.parse_args()
     return args
 
@@ -38,7 +42,8 @@ class Trainer:
         scheduler: optim.lr_scheduler,
         loss_fn: torch.nn.modules.loss._Loss, 
         epochs: int,
-        result_path: str
+        result_path: str,
+        model_name: str
     ):
         # 클래스 초기화: 모델, 디바이스, 데이터 로더 등 설정
         self.model = model  # 훈련할 모델
@@ -52,18 +57,20 @@ class Trainer:
         self.result_path = result_path  # 모델 저장 경로
         self.best_models = [] # 가장 좋은 상위 3개 모델의 정보를 저장할 리스트
         self.lowest_loss = float('inf') # 가장 낮은 Loss를 저장할 변수
+        self.model_name = model_name  # 모델 이름
 
-    def save_model(self, epoch, loss):
+    def save_model(self, epoch, loss) :
         # 모델 저장 경로 설정
         os.makedirs(self.result_path, exist_ok=True)
 
         # 현재 에폭 모델 저장
-        current_model_path = os.path.join(self.result_path, f'model_epoch_{epoch}_loss_{loss:.4f}.pt')
-        torch.save(self.model.state_dict(), current_model_path)
+        current_model_path = os.path.join(self.result_path, f'{self.model_name}_model_epoch_{epoch}_loss_{loss:.4f}.pt')
+        torch.save(self.model.state_dict(), current_model_path) # 가중치만 저장
+        # torch.save(self.model, current_model_path) # 모델 전체 저장
 
         # 최상위 3개 모델 관리
         self.best_models.append((loss, epoch, current_model_path))
-        self.best_models.sort()
+        self.best_models.sort() # loss 기준 오름차순 정렬
         if len(self.best_models) > 3:
             _, _, path_to_remove = self.best_models.pop(-1)  # 가장 높은 손실 모델 삭제
             if os.path.exists(path_to_remove):
@@ -72,9 +79,10 @@ class Trainer:
         # 가장 낮은 손실의 모델 저장
         if loss < self.lowest_loss:
             self.lowest_loss = loss
-            best_model_path = os.path.join(self.result_path, 'best_model.pt')
+            best_model_path = os.path.join(self.result_path, f'best_{self.model_name}.pt')
             torch.save(self.model.state_dict(), best_model_path)
-            print(f"Save {epoch}epoch result. Loss = {loss:.4f}")
+            # torch.save(self.model, best_model_path)
+            print(f"Saved best model for {self.model_name} at epoch {epoch} with loss {loss:.4f}")
 
     def train_epoch(self) -> float:
         # 한 에폭 동안의 훈련을 진행
@@ -147,8 +155,10 @@ def main(opt):
                                                 traindata_dir, 
                                                 opt.batch_size, 
                                                 transform_selector)
-    
-    model = create_model(model_type='timm', num_classes=num_classes, model_name='resnet18', pretrained=True)
+
+    model_name = opt.model_name
+
+    model = create_model(model_type='timm', num_classes=num_classes, model_name=model_name, pretrained=True)
     model.to(device)
 
     # 학습에 사용할 optimizer를 선언하고, learning rate를 지정
@@ -175,7 +185,8 @@ def main(opt):
         scheduler=scheduler,
         loss_fn=loss_fn, 
         epochs=epochs,
-        result_path=save_result_path
+        result_path=save_result_path,
+        model_name=model_name
     )
 
     trainer.train()
