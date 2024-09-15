@@ -9,7 +9,7 @@ from tqdm import tqdm
 from data import TransformSelector
 from src import Loss, LossVisualization
 from utils import setting_device, data_split, create_dataloaders, get_scheduler
-from model import create_model
+from model import model_selector
 
 def get_args() -> argparse.Namespace:
     # hyperparameters argument parser
@@ -28,6 +28,7 @@ def get_args() -> argparse.Namespace:
 
     # model argument parser
     parser.add_argument('--model_name', type = str, default='resnet18')
+    parser.add_argument('--img_size', type = str, default='224')
     args = parser.parse_args()
     return args
 
@@ -144,6 +145,8 @@ def main(opt):
     traindata_dir = opt.traindata_dir
     traindata_info_file = opt.traindata_info_file
     save_result_path = opt.save_result_path
+    img_size = int(opt.img_size)
+    model_name = opt.model_name
 
     # 학습 데이터의 class, image path, target에 대한 정보가 들어있는 csv파일을 읽기.
     train_df, val_df, num_classes = data_split(traindata_info_file)
@@ -158,11 +161,10 @@ def main(opt):
                                                 val_df, 
                                                 traindata_dir, 
                                                 opt.batch_size, 
-                                                transform_selector)
+                                                transform_selector, 
+                                                img_size=img_size)
 
-    model_name = opt.model_name
-
-    model = create_model(model_type='timm', num_classes=num_classes, model_name=model_name, pretrained=True)
+    model = model_selector(model_type='timm', num_classes=num_classes, model_name=model_name, pretrained=True)
     model.to(device)
 
     # 학습에 사용할 optimizer를 선언하고, learning rate를 지정

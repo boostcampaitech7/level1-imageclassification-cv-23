@@ -3,7 +3,7 @@ import argparse
 import pandas as pd
 from utils import test_dataloader, setting_device
 from data import TransformSelector
-from model import create_model
+from model import model_selector
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -23,10 +23,12 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--model_type', type=str, default='timm')
     parser.add_argument("--model_name", type=str, default="resnet18")
     parser.add_argument('--model_path', type=str, default="./train_result/best_model.pt")
+    parser.add_argument('--img_size', type=str, default=224)
+
     return parser.parse_args()
 
 def get_test_model(model_type, save_result_path, model_name, num_classes):
-    model = create_model(model_type=model_type, num_classes=num_classes, model_name=model_name, pretrained=False)
+    model = model_selector(model_type=model_type, num_classes=num_classes, model_name=model_name, pretrained=False)
     model.load_state_dict(
     torch.load(
         os.path.join(save_result_path, f"best_{model_name}.pt"),
@@ -74,7 +76,7 @@ def main(opt):
     # 총 class 수.
     num_classes = 500
 
-    test_loader = test_dataloader(test_info, opt.testdata_dir, opt.batch_size, transform_selector)
+    test_loader = test_dataloader(test_info, opt.testdata_dir, opt.batch_size, transform_selector, img_size=int(opt.img_size))
 
     model = get_test_model(opt.model_type, opt.save_result_path, opt.model_name, num_classes)
 
