@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from data import TransformSelector
-from src import Loss
+from src import Loss, LossVisualization
 from utils import setting_device, data_split, create_dataloaders, get_scheduler
 from model import create_model
 
@@ -123,6 +123,7 @@ class Trainer:
 
     def train(self) -> None:
         # 전체 훈련 과정을 관리
+        loss_visualizer = LossVisualization(save_dir=self.result_path, save_file=f"{self.model_name}_{self.epochs}_loss_curve.png")
         for epoch in range(self.epochs):
             print(f"Epoch {epoch+1}/{self.epochs}")
             
@@ -132,6 +133,9 @@ class Trainer:
 
             self.save_model(epoch, val_loss)
             self.scheduler.step()
+            loss_visualizer.update(train_loss=train_loss, val_loss=val_loss)
+
+        loss_visualizer.save_plot()
 
 def main(opt):
     
