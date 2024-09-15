@@ -77,11 +77,11 @@ class ModelSelector:
         # 생성된 모델 객체 반환
         return self.model
     
-def create_model(model_type, num_classes, model_name, pretrained=True):
+def model_selector(model_type, num_classes, model_name, pretrained=True):
     model_selector = ModelSelector(
         model_type=model_type, 
         num_classes=num_classes,
-        model_name=model_name, 
+        model_name=model_name,
         pretrained=pretrained
     )
     return model_selector.get_model()

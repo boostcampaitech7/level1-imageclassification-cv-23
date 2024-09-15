@@ -1,1 +1,1 @@
-from .model import ModelSelector, create_model
+from .model import ModelSelector, model_selector
