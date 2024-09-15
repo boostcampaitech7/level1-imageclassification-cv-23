@@ -124,19 +124,24 @@ class Trainer:
 
     def train(self) -> None:
         # 전체 훈련 과정을 관리
-        loss_visualizer = LossVisualization(save_dir=self.result_path, save_file=f"{self.model_name}_{self.epochs}_loss_curve.png")
-        for epoch in range(self.epochs):
-            print(f"Epoch {epoch+1}/{self.epochs}")
-            
-            train_loss = self.train_epoch()
-            val_loss = self.validate()
-            print(f"Epoch {epoch+1}, Train Loss: {train_loss:.4f}, Validation Loss: {val_loss:.4f}\n")
+        loss_visualizer = LossVisualization(save_dir=self.result_path, save_file=f"{self.model_name}_loss_curve.png")
+        try:
+            for epoch in range(self.epochs):
+                print(f"Epoch {epoch+1}/{self.epochs}")
+                
+                train_loss = self.train_epoch()
+                val_loss = self.validate()
+                print(f"Epoch {epoch+1}, Train Loss: {train_loss:.4f}, Validation Loss: {val_loss:.4f}\n")
 
-            self.save_model(epoch, val_loss)
-            self.scheduler.step()
-            loss_visualizer.update(train_loss=train_loss, val_loss=val_loss)
+                self.save_model(epoch, val_loss)
+                self.scheduler.step()
+                loss_visualizer.update(train_loss=train_loss, val_loss=val_loss)
 
-        loss_visualizer.save_plot()
+            loss_visualizer.save_plot()
+        except Exception as e:
+            pass
+        finally:
+            loss_visualizer.save_plot()
 
 def main(opt):
     
