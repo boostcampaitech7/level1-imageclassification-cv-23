@@ -6,10 +6,10 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
 class TorchvisionTransform:
-    def __init__(self, is_train: bool = True):
+    def __init__(self, is_train: bool = True, img_size: int = 224):
         # 공통 변환 설정: 이미지 리사이즈, 텐서 변환, 정규화
         common_transforms = [
-            transforms.Resize((224, 224)),  # 이미지를 224x224 크기로 리사이즈
+            transforms.Resize((img_size, img_size)),  # 이미지를 리사이즈
             transforms.ToTensor(),  # 이미지를 PyTorch 텐서로 변환
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # 정규화
         ]
@@ -35,10 +35,10 @@ class TorchvisionTransform:
         return transformed  # 변환된 이미지 반환
     
 class AlbumentationsTransform:
-    def __init__(self, is_train: bool = True):
+    def __init__(self, is_train: bool = True, img_size: int = 224):
         # 공통 변환 설정: 이미지 리사이즈, 정규화, 텐서 변환
         common_transforms = [
-            A.Resize(224, 224),  # 이미지를 224x224 크기로 리사이즈
+            A.Resize(img_size, img_size),  # 이미지 리사이즈
             A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # 정규화
             ToTensorV2()  # albumentations에서 제공하는 PyTorch 텐서 변환
         ]
@@ -50,6 +50,11 @@ class AlbumentationsTransform:
                     A.HorizontalFlip(p=0.5),  # 50% 확률로 이미지를 수평 뒤집기
                     A.Rotate(limit=15),  # 최대 15도 회전
                     A.RandomBrightnessContrast(p=0.2),  # 밝기 및 대비 무작위 조정
+                    A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=10, p=0.5),  # 위치 이동, 크기 조정, 회전
+                    A.OpticalDistortion(distort_limit=0.05, shift_limit=0.05, p=0.3),  # 왜곡
+                    A.GaussNoise(var_limit=(10.0, 50.0), p=0.2),  # 가우스 노이즈 추가
+                    A.MotionBlur(blur_limit=5, p=0.2),  # 모션 블러 추가
+                    A.Sharpen(p=0.2),  # 샤프닝 효과
                 ] + common_transforms
             )
         else:
@@ -80,13 +85,12 @@ class TransformSelector:
         else:
             raise ValueError("Unknown transformation library specified.")
 
-    def get_transform(self, is_train: bool):
-        
+    def get_transform(self, is_train: bool, img_size: int = 224):
         # 선택된 라이브러리에 따라 적절한 변환 객체를 생성
         if self.transform_type == 'torchvision':
-            transform = TorchvisionTransform(is_train=is_train)
+            transform = TorchvisionTransform(img_size=img_size, is_train=is_train)
         
         elif self.transform_type == 'albumentations':
-            transform = AlbumentationsTransform(is_train=is_train)
+            transform = AlbumentationsTransform(img_size=img_size, is_train=is_train)
         
         return transform
