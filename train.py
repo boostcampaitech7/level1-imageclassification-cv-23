@@ -17,7 +17,6 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--epochs', type = int, default=5)
     parser.add_argument('--batch_size', type = int, default=64)
     parser.add_argument('--lr', type = float, default=0.001)
-    parser.add_argument('--scheduler_step_size', type = int, default=30)
     parser.add_argument('--scheduler_gamma', type = float, default=0.1)
     parser.add_argument('--lr_decay', type = int, default=2)
 
@@ -124,7 +123,14 @@ class Trainer:
 
     def train(self) -> None:
         # 전체 훈련 과정을 관리
-        loss_visualizer = LossVisualization(save_dir=self.result_path, save_file=f"{self.model_name}_loss_curve.png")
+        loss_visualizer = LossVisualization(save_dir=self.result_path, hyperparameters={
+                                                                        'model': self.model_name,
+                                                                        'lr': self.optimizer.param_groups[0]['lr'],  # optimizer에서 learning rate 가져오기
+                                                                        'batch_size': self.train_loader.batch_size,  # train_loader에서 batch_size 가져오기
+                                                                        'epochs': self.epochs,
+                                                                        'scheduler_gamma': self.scheduler.scheduler_gamma if hasattr(self.scheduler, 'scheduler_gamma') else None,
+                                                                        'lr_decay': self.scheduler.epochs_per_lr_decay if hasattr(self.scheduler, 'epochs_per_lr_decay') else None
+                                                                        })
         try:
             for epoch in range(self.epochs):
                 print(f"Epoch {epoch+1}/{self.epochs}")
