@@ -1,3 +1,6 @@
 .env
 data/
 src/guide/
+.venv/
+Cutout/
+AutoAugment/
