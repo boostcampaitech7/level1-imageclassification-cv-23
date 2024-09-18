@@ -3,6 +3,7 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -91,6 +92,7 @@ class Trainer:
         total_loss = 0.0
         progress_bar = tqdm(self.train_loader, desc="Training", leave=False)
         
+        train_predictions = []
         for images, targets in progress_bar:
             images, targets = images.to(self.device), targets.to(self.device)
             self.optimizer.zero_grad()
@@ -101,8 +103,12 @@ class Trainer:
             self.scheduler.step()
             total_loss += loss.item()
             progress_bar.set_postfix(loss=loss.item())
-        
-        return total_loss / len(self.train_loader)
+
+            train_preds = F.softmax(outputs, dim=1).argmax(dim=1)
+            train_preds = (train_preds == targets)
+            train_predictions.extend(train_preds.cpu().detach().numpy())
+
+        return (total_loss / len(self.train_loader)) , (sum(train_predictions) / len(train_predictions))
 
     def validate(self) -> float:
         # 모델의 검증을 진행
@@ -111,6 +117,7 @@ class Trainer:
         total_loss = 0.0
         progress_bar = tqdm(self.val_loader, desc="Validating", leave=False)
         
+        val_predictions = []
         with torch.no_grad():
             for images, targets in progress_bar:
                 images, targets = images.to(self.device), targets.to(self.device)
@@ -119,7 +126,11 @@ class Trainer:
                 total_loss += loss.item()
                 progress_bar.set_postfix(loss=loss.item())
         
-        return total_loss / len(self.val_loader)
+                val_preds = F.softmax(outputs, dim=1).argmax(dim=1)
+                val_preds = (val_preds == targets)
+                val_predictions.extend(val_preds.cpu().detach().numpy())
+
+        return (total_loss / len(self.val_loader)) , (sum(val_predictions) / len(val_predictions))
 
     def train(self) -> None:
         # 전체 훈련 과정을 관리
@@ -135,9 +146,10 @@ class Trainer:
             for epoch in range(self.epochs):
                 print(f"Epoch {epoch+1}/{self.epochs}")
                 
-                train_loss = self.train_epoch()
-                val_loss = self.validate()
-                print(f"Epoch {epoch+1}, Train Loss: {train_loss:.4f}, Validation Loss: {val_loss:.4f}\n")
+                
+                train_loss, train_acc = self.train_epoch()
+                val_loss, val_acc = self.validate()
+                print(f"Epoch {epoch+1}, Train Loss: {train_loss:.4f}, Train Accuracy: {train_acc:.4f}, Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_acc:.4f}\n")
 
                 self.save_model(epoch, val_loss)
                 self.scheduler.step()
