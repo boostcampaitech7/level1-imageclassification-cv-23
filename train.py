@@ -5,6 +5,9 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from sklearn.model_selection import StratifiedKFold
+from torch.utils.data import Subset
+import pandas as pd
 
 from data import TransformSelector
 from src import Loss, LossVisualization
@@ -24,6 +27,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--traindata_dir', type = str, default="./data/train")
     parser.add_argument('--traindata_info_file', type = str, default="./data/train.csv")
     parser.add_argument('--save_result_path', type = str, default='./train_result')
+    parser.add_argument('--cross_validation', type = bool, default=False)
 
     # model argument parser
     parser.add_argument('--model_name', type = str, default='resnet18')
@@ -43,7 +47,8 @@ class Trainer:
         loss_fn: torch.nn.modules.loss._Loss, 
         epochs: int,
         result_path: str,
-        model_name: str
+        model_name: str,
+        fold: int
     ):
         # 클래스 초기화: 모델, 디바이스, 데이터 로더 등 설정
         self.model = model  # 훈련할 모델
@@ -58,13 +63,17 @@ class Trainer:
         self.best_models = [] # 가장 좋은 상위 3개 모델의 정보를 저장할 리스트
         self.lowest_loss = float('inf') # 가장 낮은 Loss를 저장할 변수
         self.model_name = model_name  # 모델 이름
+        self.fold = fold
 
-    def save_model(self, epoch, loss) :
-        # 모델 저장 경로 설정
+    def save_model(self, epoch, loss):
         os.makedirs(self.result_path, exist_ok=True)
 
         # 현재 에폭 모델 저장
-        current_model_path = os.path.join(self.result_path, f'{self.model_name}_model_epoch_{epoch}_loss_{loss:.4f}.pt')
+        if self.fold is not None:
+            current_model_path = os.path.join(self.result_path, f'{self.model_name}_model_fold_{self.fold}_epoch_{epoch}_loss_{loss:.4f}.pt')
+        else:
+            current_model_path = os.path.join(self.result_path, f'{self.model_name}_model_epoch_{epoch}_loss_{loss:.4f}.pt')
+
         torch.save(self.model.state_dict(), current_model_path) # 가중치만 저장
         # torch.save(self.model, current_model_path) # 모델 전체 저장
 
@@ -79,7 +88,10 @@ class Trainer:
         # 가장 낮은 손실의 모델 저장
         if loss < self.lowest_loss:
             self.lowest_loss = loss
-            best_model_path = os.path.join(self.result_path, f'best_{self.model_name}.pt')
+            if self.fold is not None:
+                best_model_path = os.path.join(self.result_path, f'best_{self.model_name}_fold_{self.fold}.pt')
+            else:
+                best_model_path = os.path.join(self.result_path, f'best_{self.model_name}.pt')
             torch.save(self.model.state_dict(), best_model_path)
             # torch.save(self.model, best_model_path)
             print(f"Saved best model for {self.model_name} at epoch {epoch} with loss {loss:.4f}")
@@ -133,6 +145,8 @@ class Trainer:
                                                                         })
         try:
             for epoch in range(self.epochs):
+                if self.fold is not None:
+                    print(f"Fold {self.fold}, ", end="")
                 print(f"Epoch {epoch+1}/{self.epochs}")
                 
                 train_loss = self.train_epoch()
@@ -149,24 +163,11 @@ class Trainer:
         finally:
             loss_visualizer.save_plot()
 
-def main(opt):
-    
+def run_train(traindata_dir, train_df, val_df, model_name, num_classes, save_result_path, img_size, fold=None):
     device = setting_device()
-
-    traindata_dir = opt.traindata_dir
-    traindata_info_file = opt.traindata_info_file
-    save_result_path = opt.save_result_path
-    img_size = int(opt.img_size)
-    model_name = opt.model_name
-
-    # 학습 데이터의 class, image path, target에 대한 정보가 들어있는 csv파일을 읽기.
-    train_df, val_df, num_classes = data_split(traindata_info_file)
-
-
-    # 학습에 사용할 Transform을 선언.
     transform_selector = TransformSelector(
-        transform_type = "albumentations"
-    )
+                transform_type = "albumentations"
+            )
 
     train_loader, val_loader = create_dataloaders(train_df, 
                                                 val_df, 
@@ -174,25 +175,20 @@ def main(opt):
                                                 opt.batch_size, 
                                                 transform_selector, 
                                                 img_size=img_size)
-
+    
     model = model_selector(model_type='timm', num_classes=num_classes, model_name=model_name, pretrained=True)
     model.to(device)
 
-    # 학습에 사용할 optimizer를 선언하고, learning rate를 지정
-    lr = opt.lr
     optimizer = optim.Adam(
     model.parameters(), 
-    lr=lr
+    lr=opt.lr
     )
 
     scheduler = get_scheduler(optimizer, train_loader, opt.lr_decay, opt.scheduler_gamma)
-    
 
     # 학습에 사용할 Loss를 선언.
     loss_fn = Loss()
 
-    epochs = opt.epochs
-    # 앞서 선언한 필요 class와 변수들을 조합해, 학습을 진행할 Trainer를 선언. 
     trainer = Trainer(
         model=model, 
         device=device, 
@@ -201,12 +197,41 @@ def main(opt):
         optimizer=optimizer,
         scheduler=scheduler,
         loss_fn=loss_fn, 
-        epochs=epochs,
+        epochs=opt.epochs,
         result_path=save_result_path,
-        model_name=model_name
+        model_name=model_name,
+        fold=fold
     )
 
     trainer.train()
+
+def cross_validation(traindata_dir, save_result_path, img_size, model_name, num_classes, n_splits):
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+    train_info = pd.read_csv(opt.traindata_info_file)
+    data  = train_info['image_path'].values
+    label = train_info['target'].values
+    for fold, (train_idx, val_idx) in enumerate(skf.split(data, label)):
+        print(f"Fold {fold + 1}/{n_splits}")
+        train_subset = train_info.iloc[train_idx]
+        val_subset = train_info.iloc[val_idx]
+        run_train(traindata_dir, train_subset, val_subset, model_name, num_classes, save_result_path, img_size, fold=fold+1)
+
+def main(opt):
+    traindata_dir = opt.traindata_dir
+    traindata_info_file = opt.traindata_info_file
+    save_result_path = opt.save_result_path
+    img_size = int(opt.img_size)
+    model_name = opt.model_name
+
+    if opt.cross_validation:
+        save_result_path = os.path.join(save_result_path, 'cross_validation')
+        num_classes = 500
+        cross_validation(traindata_dir, save_result_path, img_size, model_name, num_classes, n_splits=5)
+
+    else:
+    # 학습 데이터의 class, image path, target에 대한 정보가 들어있는 csv파일을 읽기.
+        train_df, val_df, num_classes = data_split(traindata_info_file)
+        run_train(traindata_dir, train_df, val_df, model_name, num_classes, save_result_path, img_size)
 
 if __name__ == '__main__':
     opt = get_args()

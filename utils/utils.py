@@ -2,7 +2,6 @@ import torch
 import pandas as pd
 from torch.utils.data import DataLoader
 from data import CustomDataset
-from model import ModelSelector
 import torch.optim as optim
 from sklearn.model_selection import train_test_split
 
