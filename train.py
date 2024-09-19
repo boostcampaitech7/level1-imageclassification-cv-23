@@ -5,6 +5,9 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from sklearn.model_selection import StratifiedKFold
+from torch.utils.data import Subset
+import pandas as pd
 
 from data import TransformSelector
 from src import Loss, LossVisualization
@@ -24,6 +27,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--traindata_dir', type = str, default="./data/train")
     parser.add_argument('--traindata_info_file', type = str, default="./data/train.csv")
     parser.add_argument('--save_result_path', type = str, default='./train_result')
+    parser.add_argument('--cross_validation', type = bool, default=False)
 
     # model argument parser
     parser.add_argument('--model_name', type = str, default='resnet18')
@@ -149,7 +153,7 @@ class Trainer:
         finally:
             loss_visualizer.save_plot()
 
-def run_train(opt, traindata_dir, train_df, val_df, model_name, num_classes, save_result_path, img_size):
+def run_train(traindata_dir, train_df, val_df, model_name, num_classes, save_result_path, img_size):
     device = setting_device()
     transform_selector = TransformSelector(
                 transform_type = "albumentations"
@@ -190,6 +194,17 @@ def run_train(opt, traindata_dir, train_df, val_df, model_name, num_classes, sav
 
     trainer.train()
 
+def cross_validation(traindata_dir, save_result_path, img_size, model_name, num_classes, n_splits):
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+    train_info = pd.read_csv(opt.traindata_info_file)
+    data  = train_info['image_path'].values
+    label = train_info['target'].values
+    for fold, (train_idx, val_idx) in enumerate(skf.split(data, label)):
+        print(f"Fold {fold + 1}/{n_splits}")
+        train_subset = train_info.iloc[train_idx]
+        val_subset = train_info.iloc[val_idx]
+        run_train(traindata_dir, train_subset, val_subset, model_name, num_classes, save_result_path, img_size)
+
 def main(opt):
     traindata_dir = opt.traindata_dir
     traindata_info_file = opt.traindata_info_file
@@ -197,9 +212,14 @@ def main(opt):
     img_size = int(opt.img_size)
     model_name = opt.model_name
 
+    if opt.cross_validation:
+        num_classes = 500
+        cross_validation(traindata_dir, save_result_path, img_size, model_name, num_classes, n_splits=5)
+
+    else:
     # 학습 데이터의 class, image path, target에 대한 정보가 들어있는 csv파일을 읽기.
-    train_df, val_df, num_classes = data_split(traindata_info_file)
-    run_train(opt, traindata_dir, train_df, val_df, model_name, num_classes, save_result_path, img_size)
+        train_df, val_df, num_classes = data_split(traindata_info_file)
+        run_train(traindata_dir, train_df, val_df, model_name, num_classes, save_result_path, img_size)
 
 if __name__ == '__main__':
     opt = get_args()
