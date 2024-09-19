@@ -149,24 +149,11 @@ class Trainer:
         finally:
             loss_visualizer.save_plot()
 
-def main(opt):
-    
+def run_train(opt, traindata_dir, train_df, val_df, model_name, num_classes, save_result_path, img_size):
     device = setting_device()
-
-    traindata_dir = opt.traindata_dir
-    traindata_info_file = opt.traindata_info_file
-    save_result_path = opt.save_result_path
-    img_size = int(opt.img_size)
-    model_name = opt.model_name
-
-    # 학습 데이터의 class, image path, target에 대한 정보가 들어있는 csv파일을 읽기.
-    train_df, val_df, num_classes = data_split(traindata_info_file)
-
-
-    # 학습에 사용할 Transform을 선언.
     transform_selector = TransformSelector(
-        transform_type = "albumentations"
-    )
+                transform_type = "albumentations"
+            )
 
     train_loader, val_loader = create_dataloaders(train_df, 
                                                 val_df, 
@@ -174,25 +161,20 @@ def main(opt):
                                                 opt.batch_size, 
                                                 transform_selector, 
                                                 img_size=img_size)
-
+    
     model = model_selector(model_type='timm', num_classes=num_classes, model_name=model_name, pretrained=True)
     model.to(device)
 
-    # 학습에 사용할 optimizer를 선언하고, learning rate를 지정
-    lr = opt.lr
     optimizer = optim.Adam(
     model.parameters(), 
-    lr=lr
+    lr=opt.lr
     )
 
     scheduler = get_scheduler(optimizer, train_loader, opt.lr_decay, opt.scheduler_gamma)
-    
 
     # 학습에 사용할 Loss를 선언.
     loss_fn = Loss()
 
-    epochs = opt.epochs
-    # 앞서 선언한 필요 class와 변수들을 조합해, 학습을 진행할 Trainer를 선언. 
     trainer = Trainer(
         model=model, 
         device=device, 
@@ -201,12 +183,23 @@ def main(opt):
         optimizer=optimizer,
         scheduler=scheduler,
         loss_fn=loss_fn, 
-        epochs=epochs,
+        epochs=opt.epochs,
         result_path=save_result_path,
         model_name=model_name
     )
 
     trainer.train()
+
+def main(opt):
+    traindata_dir = opt.traindata_dir
+    traindata_info_file = opt.traindata_info_file
+    save_result_path = opt.save_result_path
+    img_size = int(opt.img_size)
+    model_name = opt.model_name
+
+    # 학습 데이터의 class, image path, target에 대한 정보가 들어있는 csv파일을 읽기.
+    train_df, val_df, num_classes = data_split(traindata_info_file)
+    run_train(opt, traindata_dir, train_df, val_df, model_name, num_classes, save_result_path, img_size)
 
 if __name__ == '__main__':
     opt = get_args()
