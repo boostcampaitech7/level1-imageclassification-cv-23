@@ -47,7 +47,8 @@ class Trainer:
         loss_fn: torch.nn.modules.loss._Loss, 
         epochs: int,
         result_path: str,
-        model_name: str
+        model_name: str,
+        fold: int
     ):
         # 클래스 초기화: 모델, 디바이스, 데이터 로더 등 설정
         self.model = model  # 훈련할 모델
@@ -62,13 +63,17 @@ class Trainer:
         self.best_models = [] # 가장 좋은 상위 3개 모델의 정보를 저장할 리스트
         self.lowest_loss = float('inf') # 가장 낮은 Loss를 저장할 변수
         self.model_name = model_name  # 모델 이름
+        self.fold = fold
 
-    def save_model(self, epoch, loss) :
-        # 모델 저장 경로 설정
+    def save_model(self, epoch, loss):
         os.makedirs(self.result_path, exist_ok=True)
 
         # 현재 에폭 모델 저장
-        current_model_path = os.path.join(self.result_path, f'{self.model_name}_model_epoch_{epoch}_loss_{loss:.4f}.pt')
+        if self.fold is not None:
+            current_model_path = os.path.join(self.result_path, f'{self.model_name}_model_fold_{self.fold}_epoch_{epoch}_loss_{loss:.4f}.pt')
+        else:
+            current_model_path = os.path.join(self.result_path, f'{self.model_name}_model_epoch_{epoch}_loss_{loss:.4f}.pt')
+
         torch.save(self.model.state_dict(), current_model_path) # 가중치만 저장
         # torch.save(self.model, current_model_path) # 모델 전체 저장
 
@@ -83,7 +88,10 @@ class Trainer:
         # 가장 낮은 손실의 모델 저장
         if loss < self.lowest_loss:
             self.lowest_loss = loss
-            best_model_path = os.path.join(self.result_path, f'best_{self.model_name}.pt')
+            if self.fold is not None:
+                best_model_path = os.path.join(self.result_path, f'best_{self.model_name}_fold_{self.fold}.pt')
+            else:
+                best_model_path = os.path.join(self.result_path, f'best_{self.model_name}.pt')
             torch.save(self.model.state_dict(), best_model_path)
             # torch.save(self.model, best_model_path)
             print(f"Saved best model for {self.model_name} at epoch {epoch} with loss {loss:.4f}")
@@ -137,6 +145,8 @@ class Trainer:
                                                                         })
         try:
             for epoch in range(self.epochs):
+                if self.fold is not None:
+                    print(f"Fold {self.fold}, ", end="")
                 print(f"Epoch {epoch+1}/{self.epochs}")
                 
                 train_loss = self.train_epoch()
@@ -153,7 +163,7 @@ class Trainer:
         finally:
             loss_visualizer.save_plot()
 
-def run_train(traindata_dir, train_df, val_df, model_name, num_classes, save_result_path, img_size):
+def run_train(traindata_dir, train_df, val_df, model_name, num_classes, save_result_path, img_size, fold=None):
     device = setting_device()
     transform_selector = TransformSelector(
                 transform_type = "albumentations"
@@ -189,7 +199,8 @@ def run_train(traindata_dir, train_df, val_df, model_name, num_classes, save_res
         loss_fn=loss_fn, 
         epochs=opt.epochs,
         result_path=save_result_path,
-        model_name=model_name
+        model_name=model_name,
+        fold=fold
     )
 
     trainer.train()
@@ -203,7 +214,7 @@ def cross_validation(traindata_dir, save_result_path, img_size, model_name, num_
         print(f"Fold {fold + 1}/{n_splits}")
         train_subset = train_info.iloc[train_idx]
         val_subset = train_info.iloc[val_idx]
-        run_train(traindata_dir, train_subset, val_subset, model_name, num_classes, save_result_path, img_size)
+        run_train(traindata_dir, train_subset, val_subset, model_name, num_classes, save_result_path, img_size, fold=fold+1)
 
 def main(opt):
     traindata_dir = opt.traindata_dir
@@ -213,6 +224,7 @@ def main(opt):
     model_name = opt.model_name
 
     if opt.cross_validation:
+        save_result_path = os.path.join(save_result_path, 'cross_validation')
         num_classes = 500
         cross_validation(traindata_dir, save_result_path, img_size, model_name, num_classes, n_splits=5)
 
