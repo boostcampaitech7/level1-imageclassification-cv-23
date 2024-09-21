@@ -152,7 +152,8 @@ class Trainer:
                                                                         'batch_size': self.train_loader.batch_size,  # train_loader에서 batch_size 가져오기
                                                                         'epochs': self.epochs,
                                                                         'scheduler_gamma': self.scheduler.scheduler_gamma if hasattr(self.scheduler, 'scheduler_gamma') else None,
-                                                                        'lr_decay': self.scheduler.epochs_per_lr_decay if hasattr(self.scheduler, 'epochs_per_lr_decay') else None
+                                                                        'lr_decay': self.scheduler.epochs_per_lr_decay if hasattr(self.scheduler, 'epochs_per_lr_decay') else None,
+                                                                        'fold': self.fold
                                                                         })
         try:
             for epoch in range(self.epochs):

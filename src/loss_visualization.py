@@ -44,6 +44,9 @@ class LossVisualization:
         axs[1].text(0.5, 0.5, hyperparam_text, fontsize=20, ha='center', va='center', wrap=True, bbox=dict(facecolor='white', alpha=0.5))  # 폰트 크기 및 배경 추가
 
         plt.tight_layout()
-        save_path = os.path.join(self.save_dir, f'{self.hyperparameters["model"]}_loss_curve_train_{final_train_loss:.4f}_val_{final_val_loss:.4f}.png')
+        if self.hyperparameters["fold"] is not None:
+            save_path = os.path.join(self.save_dir, f'{self.hyperparameters["model"]}_loss_curve_train_{final_train_loss:.4f}_val_{final_val_loss:.4f}_fold_{self.hyperparameters["fold"]}.png')
+        else:
+            save_path = os.path.join(self.save_dir, f'{self.hyperparameters["model"]}_loss_curve_train_{final_train_loss:.4f}_val_{final_val_loss:.4f}.png')
         plt.savefig(save_path)
         plt.close()
