@@ -11,7 +11,7 @@ from torch.utils.data import Subset
 import pandas as pd
 
 from data import TransformSelector
-from src import Loss, LossVisualization
+from src import Loss, LossVisualization, EarlyStopping
 from utils import setting_device, data_split, create_dataloaders, get_scheduler, L1_regularization
 from model import model_selector
 
@@ -25,6 +25,8 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--lr_decay', type = int, default=2)
     parser.add_argument('--L1', type=float, default=0.0)
     parser.add_argument('--L2', type=float, default=0.0)
+    parser.add_argument('--early_stopping_patience', type=int, default=5)
+    parser.add_argument('--early_stopping_min_delta', type=float, default=0.0)
 
     # utils argument parser
     parser.add_argument('--traindata_dir', type = str, default="./data/train")
@@ -53,7 +55,9 @@ class Trainer:
         result_path: str,
         model_name: str,
         fold: int,
-        lambda_L1: float = 0.0
+        lambda_L1: float,
+        early_stopping_patience: int,
+        early_stopping_min_delta: float
     ):
         # 클래스 초기화: 모델, 디바이스, 데이터 로더 등 설정
         self.model = model  # 훈련할 모델
@@ -70,6 +74,8 @@ class Trainer:
         self.model_name = model_name  # 모델 이름
         self.fold = fold
         self.lambda_L1 = lambda_L1
+        self.early_stopping_patience = early_stopping_patience
+        self.early_stopping_min_delta = early_stopping_min_delta
 
     def save_model(self, epoch, loss):
         os.makedirs(self.result_path, exist_ok=True)
@@ -155,14 +161,15 @@ class Trainer:
     def train(self) -> None:
         # 전체 훈련 과정을 관리
         loss_visualizer = LossVisualization(save_dir=self.result_path, hyperparameters={
-                                                                        'model': self.model_name,
-                                                                        'lr': self.optimizer.param_groups[0]['lr'],  # optimizer에서 learning rate 가져오기
-                                                                        'batch_size': self.train_loader.batch_size,  # train_loader에서 batch_size 가져오기
-                                                                        'epochs': self.epochs,
-                                                                        'scheduler_gamma': self.scheduler.scheduler_gamma if hasattr(self.scheduler, 'scheduler_gamma') else None,
-                                                                        'lr_decay': self.scheduler.epochs_per_lr_decay if hasattr(self.scheduler, 'epochs_per_lr_decay') else None,
-                                                                        'fold': self.fold
-                                                                        })
+                                            'model': self.model_name,
+                                            'lr': self.optimizer.param_groups[0]['lr'],  # optimizer에서 learning rate 가져오기
+                                            'batch_size': self.train_loader.batch_size,  # train_loader에서 batch_size 가져오기
+                                            'epochs': self.epochs,
+                                            'scheduler_gamma': self.scheduler.scheduler_gamma if hasattr(self.scheduler, 'scheduler_gamma') else None,
+                                            'lr_decay': self.scheduler.epochs_per_lr_decay if hasattr(self.scheduler, 'epochs_per_lr_decay') else None,
+                                            'fold': self.fold
+                                            })
+        early_stopper = EarlyStopping(patience=self.early_stopping_patience, min_delta=self.early_stopping_min_delta)
         try:
             for epoch in range(self.epochs):
                 if self.fold is not None:
@@ -176,6 +183,14 @@ class Trainer:
                 self.save_model(epoch, val_loss)
                 self.scheduler.step()
                 loss_visualizer.update(train_loss=train_loss, val_loss=val_loss)
+
+                early_stopper(val_loss)
+                print(f"EarlyStopping Counter: {early_stopper.counter}/{self.early_stopping_patience}")
+
+                if early_stopper.early_stop:
+                    print("Early stopping!!!!!!!")
+                    loss_visualizer.save_plot()
+                    break
 
             loss_visualizer.save_plot()
         except Exception as e:
@@ -221,7 +236,9 @@ def run_train(opt, traindata_dir, train_df, val_df, model_name, num_classes, sav
         result_path=save_result_path,
         model_name=model_name,
         fold=fold,
-        lambda_L1=opt.L1
+        lambda_L1=opt.L1,
+        early_stopping_patience=opt.early_stopping_patience,
+        early_stopping_min_delta=opt.early_stopping_min_delta
     )
 
     trainer.train()

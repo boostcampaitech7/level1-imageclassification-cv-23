@@ -7,6 +7,8 @@ gamma=(0.1 0.2 0.3)
 lr_decay=(2 4 6)
 L1=0.01
 L2=0.01
+early_stopping_delta=0.01
+early_stopping_patience=3
 
 models_and_img_sizes=( 
     "resnet101 224"
