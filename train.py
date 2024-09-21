@@ -26,7 +26,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--L1', type=float, default=0.0)
     parser.add_argument('--L2', type=float, default=0.0)
     parser.add_argument('--early_stopping_patience', type=int, default=5)
-    parser.add_argument('--early_stopping_min_delta', type=float, default=0.0)
+    parser.add_argument('--early_stopping_delta', type=float, default=0.0)
 
     # utils argument parser
     parser.add_argument('--traindata_dir', type = str, default="./data/train")
@@ -57,7 +57,7 @@ class Trainer:
         fold: int,
         lambda_L1: float,
         early_stopping_patience: int,
-        early_stopping_min_delta: float
+        early_stopping_delta: float
     ):
         # 클래스 초기화: 모델, 디바이스, 데이터 로더 등 설정
         self.model = model  # 훈련할 모델
@@ -75,7 +75,7 @@ class Trainer:
         self.fold = fold
         self.lambda_L1 = lambda_L1
         self.early_stopping_patience = early_stopping_patience
-        self.early_stopping_min_delta = early_stopping_min_delta
+        self.early_stopping_delta = early_stopping_delta
 
     def save_model(self, epoch, loss):
         os.makedirs(self.result_path, exist_ok=True)
@@ -169,7 +169,7 @@ class Trainer:
                                             'lr_decay': self.scheduler.epochs_per_lr_decay if hasattr(self.scheduler, 'epochs_per_lr_decay') else None,
                                             'fold': self.fold
                                             })
-        early_stopper = EarlyStopping(patience=self.early_stopping_patience, min_delta=self.early_stopping_min_delta)
+        early_stopper = EarlyStopping(patience=self.early_stopping_patience, min_delta=self.early_stopping_delta)
         try:
             for epoch in range(self.epochs):
                 if self.fold is not None:
@@ -238,7 +238,7 @@ def run_train(opt, traindata_dir, train_df, val_df, model_name, num_classes, sav
         fold=fold,
         lambda_L1=opt.L1,
         early_stopping_patience=opt.early_stopping_patience,
-        early_stopping_min_delta=opt.early_stopping_min_delta
+        early_stopping_delta=opt.early_stopping_delta
     )
 
     trainer.train()
