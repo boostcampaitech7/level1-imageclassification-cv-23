@@ -12,7 +12,7 @@ import pandas as pd
 
 from data import TransformSelector
 from src import Loss, LossVisualization
-from utils import setting_device, data_split, create_dataloaders, get_scheduler
+from utils import setting_device, data_split, create_dataloaders, get_scheduler, L1_regularization
 from model import model_selector
 
 def get_args() -> argparse.Namespace:
@@ -23,12 +23,15 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--lr', type = float, default=0.001)
     parser.add_argument('--scheduler_gamma', type = float, default=0.1)
     parser.add_argument('--lr_decay', type = int, default=2)
+    parser.add_argument('--L1', type=float, default=0.0)
+    parser.add_argument('--L2', type=float, default=0.0)
 
     # utils argument parser
     parser.add_argument('--traindata_dir', type = str, default="./data/train")
     parser.add_argument('--traindata_info_file', type = str, default="./data/train.csv")
     parser.add_argument('--save_result_path', type = str, default='./train_result')
     parser.add_argument('--cross_validation', type = bool, default=False)
+    
 
     # model argument parser
     parser.add_argument('--model_name', type = str, default='resnet18')
@@ -49,7 +52,8 @@ class Trainer:
         epochs: int,
         result_path: str,
         model_name: str,
-        fold: int
+        fold: int,
+        lambda_L1: float = 0.0
     ):
         # 클래스 초기화: 모델, 디바이스, 데이터 로더 등 설정
         self.model = model  # 훈련할 모델
@@ -65,6 +69,7 @@ class Trainer:
         self.lowest_loss = float('inf') # 가장 낮은 Loss를 저장할 변수
         self.model_name = model_name  # 모델 이름
         self.fold = fold
+        self.lambda_L1 = lambda_L1
 
     def save_model(self, epoch, loss):
         os.makedirs(self.result_path, exist_ok=True)
@@ -110,6 +115,9 @@ class Trainer:
             self.optimizer.zero_grad()
             outputs = self.model(images)
             loss = self.loss_fn(outputs, targets)
+            if self.lambda_L1 > 0.0:
+                loss += L1_regularization(self.model, self.lambda_L1)
+
             loss.backward()
             self.optimizer.step()
             self.scheduler.step()
@@ -161,7 +169,6 @@ class Trainer:
                     print(f"Fold {self.fold}, ", end="")
                 print(f"Epoch {epoch+1}/{self.epochs}")
                 
-                
                 train_loss, train_acc = self.train_epoch()
                 val_loss, val_acc = self.validate()
                 print(f"Epoch {epoch+1}, Train Loss: {train_loss:.4f}, Train Accuracy: {train_acc:.4f}, Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_acc:.4f}\n")
@@ -176,7 +183,7 @@ class Trainer:
         finally:
             loss_visualizer.save_plot()
 
-def run_train(traindata_dir, train_df, val_df, model_name, num_classes, save_result_path, img_size, fold=None):
+def run_train(opt, traindata_dir, train_df, val_df, model_name, num_classes, save_result_path, img_size, fold=None):
     device = setting_device()
     transform_selector = TransformSelector(
                 transform_type = "albumentations"
@@ -194,7 +201,7 @@ def run_train(traindata_dir, train_df, val_df, model_name, num_classes, save_res
 
     optimizer = optim.Adam(
     model.parameters(), 
-    lr=opt.lr
+    lr=opt.lr, weight_decay=opt.L2
     )
 
     scheduler = get_scheduler(optimizer, train_loader, opt.lr_decay, opt.scheduler_gamma)
@@ -213,12 +220,13 @@ def run_train(traindata_dir, train_df, val_df, model_name, num_classes, save_res
         epochs=opt.epochs,
         result_path=save_result_path,
         model_name=model_name,
-        fold=fold
+        fold=fold,
+        lambda_L1=opt.L1
     )
 
     trainer.train()
 
-def cross_validation(traindata_dir, save_result_path, img_size, model_name, num_classes, n_splits):
+def cross_validation(opt, traindata_dir, save_result_path, img_size, model_name, num_classes, n_splits):
     skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
     train_info = pd.read_csv(opt.traindata_info_file)
     data  = train_info['image_path'].values
@@ -227,7 +235,7 @@ def cross_validation(traindata_dir, save_result_path, img_size, model_name, num_
         print(f"Fold {fold + 1}/{n_splits}")
         train_subset = train_info.iloc[train_idx]
         val_subset = train_info.iloc[val_idx]
-        run_train(traindata_dir, train_subset, val_subset, model_name, num_classes, save_result_path, img_size, fold=fold+1)
+        run_train(opt,traindata_dir, train_subset, val_subset, model_name, num_classes, save_result_path, img_size, fold=fold+1)
 
 def main(opt):
     traindata_dir = opt.traindata_dir
@@ -239,12 +247,12 @@ def main(opt):
     if opt.cross_validation:
         save_result_path = os.path.join(save_result_path, 'cross_validation')
         num_classes = 500
-        cross_validation(traindata_dir, save_result_path, img_size, model_name, num_classes, n_splits=5)
+        cross_validation(opt,traindata_dir, save_result_path, img_size, model_name, num_classes, n_splits=5)
 
     else:
     # 학습 데이터의 class, image path, target에 대한 정보가 들어있는 csv파일을 읽기.
         train_df, val_df, num_classes = data_split(traindata_info_file)
-        run_train(traindata_dir, train_df, val_df, model_name, num_classes, save_result_path, img_size)
+        run_train(opt, traindata_dir, train_df, val_df, model_name, num_classes, save_result_path, img_size)
 
 if __name__ == '__main__':
     opt = get_args()
