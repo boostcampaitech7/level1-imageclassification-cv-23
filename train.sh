@@ -6,7 +6,7 @@ epochs=(20 30)
 gamma=(0.1)
 lr_decay=(6)
 L1=0
-L2=0.001
+L2=0
 early_stopping_delta=0.01
 early_stopping_patience=3
 

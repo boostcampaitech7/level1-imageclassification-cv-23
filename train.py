@@ -165,9 +165,11 @@ class Trainer:
                                             'lr': self.optimizer.param_groups[0]['lr'],  # optimizer에서 learning rate 가져오기
                                             'batch_size': self.train_loader.batch_size,  # train_loader에서 batch_size 가져오기
                                             'epochs': self.epochs,
-                                            'scheduler_gamma': self.scheduler.scheduler_gamma if hasattr(self.scheduler, 'scheduler_gamma') else None,
-                                            'lr_decay': self.scheduler.epochs_per_lr_decay if hasattr(self.scheduler, 'epochs_per_lr_decay') else None,
-                                            'fold': self.fold
+                                            'scheduler_gamma': self.scheduler.gamma if hasattr(self.scheduler, 'gamma') else opt.scheduler_gamma,
+                                            'lr_decay': opt.lr_decay,
+                                            'fold': self.fold,
+                                            'lambda_L1': opt.L1,
+                                            'L2 weight_decay': opt.L2
                                             })
         early_stopper = EarlyStopping(patience=self.early_stopping_patience, min_delta=self.early_stopping_delta)
         try:

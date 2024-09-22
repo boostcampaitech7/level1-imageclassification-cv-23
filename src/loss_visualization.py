@@ -37,7 +37,9 @@ class LossVisualization:
             f'scheduler_gamma: {self.hyperparameters["scheduler_gamma"]}\n'
             f'lr_decay: {self.hyperparameters["lr_decay"]}\n\n'
             f'Final Train Loss: {final_train_loss:.4f}\n'
-            f'Final Validation Loss: {final_val_loss:.4f}'
+            f'Final Validation Loss: {final_val_loss:.4f}\n'
+            f'lambda L1: {self.hyperparameters["lambda_L1"]}\n'
+            f'L2 weight_decay: {self.hyperparameters["L2 weight_decay"]}\n'
         )
 
         axs[1].axis('off') 
