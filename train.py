@@ -167,7 +167,9 @@ class Trainer:
                                             'epochs': self.epochs,
                                             'scheduler_gamma': self.scheduler.gamma if hasattr(self.scheduler, 'gamma') else opt.scheduler_gamma,
                                             'lr_decay': opt.lr_decay,
-                                            'fold': self.fold
+                                            'fold': self.fold,
+                                            'lambda_L1': opt.L1,
+                                            'L2 weight_decay': opt.L2
                                             })
         early_stopper = EarlyStopping(patience=self.early_stopping_patience, min_delta=self.early_stopping_delta)
         try:
