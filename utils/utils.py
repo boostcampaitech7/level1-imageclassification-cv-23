@@ -83,3 +83,9 @@ def get_scheduler(optimizer, train_loader, epochs_per_lr_decay, scheduler_gamma)
         gamma=scheduler_gamma
     )
     return scheduler
+
+def L1_regularization(model, lambda_l1):
+    l1_penalty = 0.0
+    for param in model.parameters():
+        l1_penalty += torch.sum(torch.abs(param))
+    return lambda_l1 * l1_penalty
