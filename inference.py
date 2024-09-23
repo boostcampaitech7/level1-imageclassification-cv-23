@@ -9,6 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from datetime import datetime
 
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='parameters for inference')
@@ -86,9 +87,12 @@ def main(opt):
         test_loader=test_loader
     )
 
+    current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_filename = f"{opt.model_name}_{current_time}.csv"
+    
     test_info['target'] = predictions
     test_info = test_info.reset_index().rename(columns={"index": "ID"})
-    test_info.to_csv("output.csv", index=False)
+    test_info.to_csv(output_filename, index=False)
 
 if __name__ == '__main__':
     opt = get_args()
