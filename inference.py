@@ -26,7 +26,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--model_path', type=str, default="./train_result/best_model.pt")
     parser.add_argument('--img_size', type=str, default=224)
 
-    parser.add_argument('--cross_validation', type=bool, default=False)
+    parser.add_argument('--cross_validation', action="store_true")
     return parser.parse_args()
 
 def get_test_model(model_type, save_result_path, model_name, num_classes):
