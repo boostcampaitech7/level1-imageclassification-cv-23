@@ -10,6 +10,8 @@ from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import Subset
 import pandas as pd
 
+from torch.cuda.amp import autocast, GradScaler
+
 from data import TransformSelector
 from src import Loss, LossVisualization, EarlyStopping
 from utils import setting_device, data_split, create_dataloaders, get_scheduler, L1_regularization
@@ -115,17 +117,26 @@ class Trainer:
         total_loss = 0.0
         progress_bar = tqdm(self.train_loader, desc="Training", leave=False)
         
+
+        scaler = GradScaler()
         train_predictions = []
         for images, targets in progress_bar:
             images, targets = images.to(self.device), targets.to(self.device)
             self.optimizer.zero_grad()
-            outputs = self.model(images)
-            loss = self.loss_fn(outputs, targets)
-            if self.lambda_L1 > 0.0:
-                loss += L1_regularization(self.model, self.lambda_L1)
 
-            loss.backward()
-            self.optimizer.step()
+            with autocast():
+                outputs = self.model(images)
+                loss = self.loss_fn(outputs, targets)
+                if self.lambda_L1 > 0.0:
+                    loss += L1_regularization(self.model, self.lambda_L1)
+
+            scaler.scale(loss).backward()
+            scaler.step(self.optimizer)
+            scaler.update()
+            
+            # loss.backward()
+            # self.optimizer.step()
+            
             self.scheduler.step()
             total_loss += loss.item()
             progress_bar.set_postfix(loss=loss.item())
