@@ -23,10 +23,10 @@ def get_args() -> argparse.Namespace:
     # model argument parser
     parser.add_argument('--model_type', type=str, default='timm')
     parser.add_argument("--model_name", type=str, default="resnet18")
-    parser.add_argument('--model_path', type=str, default="./train_result/best_model.pt")
     parser.add_argument('--img_size', type=str, default=224)
 
     parser.add_argument('--cross_validation', action="store_true")
+    parser.add_argument('--fold', type=int, default=5)
     return parser.parse_args()
 
 def get_test_model(model_type, save_result_path, model_name, num_classes):
@@ -63,7 +63,6 @@ def inference(
     
     return predictions
 
-
 def main(opt):
     device = setting_device()
 
@@ -81,9 +80,9 @@ def main(opt):
     test_loader = test_dataloader(test_info, opt.testdata_dir, opt.batch_size, transform_selector, img_size=int(opt.img_size))
 
     if opt.cross_validation:
-        save_result_path = os.path.join(opt.save_result_path, "cross_validation")
+        save_result_path = os.path.join(opt.save_result_path)
         cross_validation_prediction = []
-        for fold in range(5):
+        for fold in range(opt.fold):
             print(f"inference for fold {fold + 1}")
             model_path = os.path.join(save_result_path, f"best_{opt.model_name}_fold_{fold+1}.pt")
             model = get_test_model(opt.model_type, model_path, opt.model_name, num_classes)
@@ -93,6 +92,8 @@ def main(opt):
 
         avg_predictions = np.mean(cross_validation_prediction, axis=0)
         final_predictions = np.argmax(avg_predictions, axis=1)
+
+        output_filename = f"{opt.model_name}_cross_validation.csv"
 
     else:
         model_path = os.path.join(opt.save_result_path, f"best_{opt.model_name}.pt")
@@ -105,9 +106,17 @@ def main(opt):
             )
         final_predictions = np.argmax(predictions, axis=1)
 
+        output_filename = f"{opt.model_name}.csv"
+
+    num = 0
+    base_filename = output_filename.split(".csv")[0]
+    while os.path.exists(output_filename):
+        num += 1
+        output_filename = f"{base_filename}_{num}.csv"
+        
     test_info['target'] = final_predictions
     test_info = test_info.reset_index().rename(columns={"index": "ID"})
-    test_info.to_csv("output.csv", index=False)
+    test_info.to_csv(output_filename, index=False)
 
 if __name__ == '__main__':
     opt = get_args()
