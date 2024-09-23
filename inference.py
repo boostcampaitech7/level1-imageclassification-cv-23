@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-import numpy as np
+from datetime import datetime
 
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='parameters for inference')
@@ -23,17 +23,16 @@ def get_args() -> argparse.Namespace:
     # model argument parser
     parser.add_argument('--model_type', type=str, default='timm')
     parser.add_argument("--model_name", type=str, default="resnet18")
+    parser.add_argument('--model_path', type=str, default="./train_result/best_model.pt")
     parser.add_argument('--img_size', type=str, default=224)
 
-    parser.add_argument('--cross_validation', action="store_true")
-    parser.add_argument('--fold', type=int, default=5)
     return parser.parse_args()
 
 def get_test_model(model_type, save_result_path, model_name, num_classes):
     model = model_selector(model_type=model_type, num_classes=num_classes, model_name=model_name, pretrained=False)
     model.load_state_dict(
     torch.load(
-        save_result_path,
+        os.path.join(save_result_path, f"best_{model_name}.pt"),
         map_location='cpu'
         )
     )
@@ -57,11 +56,13 @@ def inference(
             # 모델을 통해 예측 수행
             logits = model(images)
             logits = F.softmax(logits, dim=1)
+            preds = logits.argmax(dim=1)
             
             # 예측 결과 저장
-            predictions.extend(logits.cpu().detach().numpy())  # 결과를 CPU로 옮기고 리스트에 추가
+            predictions.extend(preds.cpu().detach().numpy())  # 결과를 CPU로 옮기고 리스트에 추가
     
     return predictions
+
 
 def main(opt):
     device = setting_device()
@@ -75,46 +76,21 @@ def main(opt):
 
     # 총 class 수.
     num_classes = 500
-    save_result_path = opt.save_result_path
 
     test_loader = test_dataloader(test_info, opt.testdata_dir, opt.batch_size, transform_selector, img_size=int(opt.img_size))
 
-    if opt.cross_validation:
-        save_result_path = os.path.join(opt.save_result_path)
-        cross_validation_prediction = []
-        for fold in range(opt.fold):
-            print(f"inference for fold {fold + 1}")
-            model_path = os.path.join(save_result_path, f"best_{opt.model_name}_fold_{fold+1}.pt")
-            model = get_test_model(opt.model_type, model_path, opt.model_name, num_classes)
+    model = get_test_model(opt.model_type, opt.save_result_path, opt.model_name, num_classes)
 
-            fold_predictions = inference(model=model, device=device, test_loader=test_loader)
-            cross_validation_prediction.append(fold_predictions)
+    predictions = inference(
+        model=model, 
+        device=device, 
+        test_loader=test_loader
+    )
 
-        avg_predictions = np.mean(cross_validation_prediction, axis=0)
-        final_predictions = np.argmax(avg_predictions, axis=1)
-
-        output_filename = f"{opt.model_name}_cross_validation.csv"
-
-    else:
-        model_path = os.path.join(opt.save_result_path, f"best_{opt.model_name}.pt")
-        model = get_test_model(opt.model_type, opt.save_result_path, opt.model_name, num_classes)
-
-        predictions = inference(
-            model=model, 
-            device=device, 
-            test_loader=test_loader
-            )
-        final_predictions = np.argmax(predictions, axis=1)
-
-        output_filename = f"{opt.model_name}.csv"
-
-    num = 0
-    base_filename = output_filename.split(".csv")[0]
-    while os.path.exists(output_filename):
-        num += 1
-        output_filename = f"{base_filename}_{num}.csv"
-        
-    test_info['target'] = final_predictions
+    current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_filename = f"{opt.model_name}_{current_time}.csv"
+    
+    test_info['target'] = predictions
     test_info = test_info.reset_index().rename(columns={"index": "ID"})
     test_info.to_csv(output_filename, index=False)
 
