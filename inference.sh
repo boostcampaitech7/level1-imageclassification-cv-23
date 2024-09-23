@@ -1,6 +1,6 @@
 batch_size=(16 32 64)
 
-model_name="resnet101"
+model_name="resnet18"
 img_size='224'
 
 testdata_dir="/data/ephemeral/home/data/test"
@@ -15,6 +15,6 @@ for bs in "${batch_size[@]}"; do
                         --testdata_dir "$testdata_dir" \
                         --testdata_info_file "$testdata_info_file" \
                         --save_result_path "$save_result_path" \
-                        --img_size "$img_size" \
-                        --cross_validation
+                        --img_size "$img_size"
+
 done
