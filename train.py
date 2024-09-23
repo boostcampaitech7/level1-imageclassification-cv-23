@@ -32,7 +32,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--traindata_dir', type = str, default="./data/train")
     parser.add_argument('--traindata_info_file', type = str, default="./data/train.csv")
     parser.add_argument('--save_result_path', type = str, default='./train_result')
-    parser.add_argument('--cross_validation', type = bool, default=False)
+    parser.add_argument('--cross_validation', action='store_true', help='cross-validation을 사용하지 않을 경우 플래그를 지우세요')
     
 
     # model argument parser
