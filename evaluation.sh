@@ -6,8 +6,8 @@ model_n_img_size="best_resnetv2_50_fold_1,resnetv2_50,224;
                 best_resnetv2_50_fold_1,resnetv2_50,124"
 model_n_img_size=$(echo $model_n_img_size | tr -d '[:space:]')
 
-testdata_dir="/data/ephemeral/home/common_data/data/train"
-testdata_info_file="/data/ephemeral/home/common_data/data/train.csv"
+evaldata_dir="/data/ephemeral/home/data/train"
+evaldata_info_file="/data/ephemeral/home/data/train.csv"
 save_result_path="/data/ephemeral/home/train_result"
 
 
