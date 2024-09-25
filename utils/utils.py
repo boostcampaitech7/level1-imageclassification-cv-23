@@ -52,7 +52,7 @@ def create_dataloaders(
     
     return train_loader, val_loader
 
-def test_dataloader(test_info, testdata_dir, batch_size, transform_selector, img_size):
+def test_dataloader(test_info, testdata_dir, batch_size, transform_selector, img_size, is_inference=True):
     test_transform = transform_selector.get_transform(img_size = img_size, is_train=False)
 
     # 추론에 사용할 Dataset을 선언.
@@ -60,7 +60,7 @@ def test_dataloader(test_info, testdata_dir, batch_size, transform_selector, img
         root_dir=testdata_dir,
         info_df=test_info,
         transform=test_transform,
-        is_inference=True
+        is_inference=is_inference
     )
 
     # 추론에 사용할 DataLoader를 선언.
