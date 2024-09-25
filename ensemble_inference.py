@@ -1,14 +1,9 @@
 import os
 import argparse
 import pandas as pd
-from utils import test_dataloader, setting_device
+from utils import test_dataloader, setting_device, parse_model_names, get_model, ensemble_inference
 from data import TransformSelector
-from model import model_selector
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import DataLoader
-from tqdm import tqdm
+
 import numpy as np
 from datetime import datetime
 
@@ -25,28 +20,6 @@ def get_args() -> argparse.Namespace:
     
     return parser.parse_args()
 
-def parse_model_names(model_names_str):
-    return [name.split(',') for name in model_names_str.split(';')]
-
-def get_test_model(model_type, model_path, model_name, num_classes):
-    model = model_selector(model_type=model_type, num_classes=num_classes, model_name=model_name, pretrained=False)
-    model.load_state_dict(torch.load(model_path, map_location='cpu'))
-    return model
-
-def inference(model: nn.Module, device: torch.device, test_loader: DataLoader):
-    model.to(device)
-    model.eval()
-    
-    predictions = []
-    with torch.no_grad():
-        for images in tqdm(test_loader):
-            images = images.to(device)
-            logits = model(images)
-            logits = F.softmax(logits, dim=1)
-            predictions.extend(logits.cpu().detach().numpy())
-    
-    return predictions
-
 def main(opt):
     model_names = parse_model_names(opt.model_names)
     
@@ -57,10 +30,10 @@ def main(opt):
     ensemble_predictions = []
 
     for pt_file, model_name, img_size in model_names:
-        test_loader = test_dataloader(test_info, opt.testdata_dir, opt.batch_size, transform_selector, img_size=int(img_size))
+        test_loader = test_dataloader(test_info, opt.testdata_dir, opt.batch_size, transform_selector, img_size=int(img_size), is_inference=True)
         model_path = os.path.join(opt.save_result_path, pt_file + ".pt")
-        model = get_test_model(opt.model_type, model_path, model_name, num_classes)
-        model_predictions = inference(model=model, device=device, test_loader=test_loader)
+        model = get_model(opt.model_type, model_path, model_name, num_classes)
+        model_predictions = ensemble_inference(model=model, device=device, dataloader=test_loader, mode='ensemble')
         ensemble_predictions.append(model_predictions)
 
     avg_predictions = np.mean(ensemble_predictions, axis=0)

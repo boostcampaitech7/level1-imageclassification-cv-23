@@ -77,7 +77,7 @@ def main(opt):
     # 총 class 수.
     num_classes = 500
 
-    test_loader = test_dataloader(test_info, opt.testdata_dir, opt.batch_size, transform_selector, img_size=int(opt.img_size))
+    test_loader = test_dataloader(test_info, opt.testdata_dir, opt.batch_size, transform_selector, img_size=int(opt.img_size), is_inference=True)
 
     model = get_test_model(opt.model_type, opt.save_result_path, opt.model_name, num_classes)
 
