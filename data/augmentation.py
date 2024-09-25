@@ -49,7 +49,7 @@ class AlbumentationsTransform:
                 [
                     A.HorizontalFlip(p=0.5),  # 50% 확률로 이미지를 수평 뒤집기
                     A.Rotate(limit=15),  # 최대 15도 회전
-                    A.RandomBrightnessContrast(p=0.2),  # 밝기 및 대비 무작위 조정
+                    A.RandomBrightnessContrast(brightness_limit=(-0.2, -0.2), contrast_limit=0, p=1),  # 밝기 및 대비 무작위 조정
                     A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=10, p=0.5),  # 위치 이동, 크기 조정, 회전
                     A.OpticalDistortion(distort_limit=0.05, shift_limit=0.05, p=0.3),  # 왜곡
                     A.GaussNoise(var_limit=(10.0, 50.0), p=0.2),  # 가우스 노이즈 추가
