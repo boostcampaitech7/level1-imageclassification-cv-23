@@ -29,7 +29,6 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--save_result_path', type=str, default='./train_result')
     parser.add_argument('--model_name', type=str, default='resnet18')
     parser.add_argument('--img_size', type=str, default='224')
-    parser.add_argument('--pretrained_model_path', type=str, required=True, help='Path to the pretrained model file')
     
     parser.add_argument('--lr', type=float)
     parser.add_argument('--batch_size', type=int)
@@ -66,6 +65,32 @@ class Trainer:
         self.epochs = epochs
         self.result_path = result_path
         self.model_name = model_name
+        self.best_models = [] # 가장 좋은 상위 3개 모델의 정보를 저장할 리스트
+        self.lowest_loss = float('inf') # 가장 낮은 Loss를 저장할 변수
+    
+    def save_model(self, epoch, loss):
+        os.makedirs(self.result_path, exist_ok=True)
+
+        # 현재 에폭 모델 저장
+        current_model_path = os.path.join(self.result_path, f'{self.model_name}_model_epoch_{epoch}_loss_{loss:.4f}.pt')
+        torch.save(self.model.state_dict(), current_model_path) # 가중치만 저장
+        # torch.save(self.model, current_model_path) # 모델 전체 저장
+
+        # 최상위 3개 모델 관리
+        self.best_models.append((loss, epoch, current_model_path))
+        self.best_models.sort() # loss 기준 오름차순 정렬
+        if len(self.best_models) > 3:
+            _, _, path_to_remove = self.best_models.pop(-1)  # 가장 높은 손실 모델 삭제
+            if os.path.exists(path_to_remove):
+                os.remove(path_to_remove)
+
+        # 가장 낮은 손실의 모델 저장
+        if loss < self.lowest_loss:
+            self.lowest_loss = loss
+            best_model_path = os.path.join(self.result_path, f'best_{self.model_name}.pt')
+            torch.save(self.model.state_dict(), best_model_path)
+            # torch.save(self.model, best_model_path)
+            print(f"Saved best model for {self.model_name} at epoch {epoch} with loss {loss:.4f}")
 
 
     def train_epoch(self) -> float:
@@ -77,21 +102,19 @@ class Trainer:
         
         progress_bar = tqdm(self.train_loader, desc="Training", leave=False)
         
-        scaler = GradScaler()
         for images, targets in progress_bar:
             images, targets = images.to(self.device), targets.to(self.device)
             
             self.optimizer.zero_grad()
 
-            with autocast():
+            with torch.autograd.detect_anomaly():
                 outputs = self.model(images)
                 loss = self.loss_fn(outputs, targets)
+                loss.backward()
 
-            scaler.scale(loss).backward()
-            scaler.step(self.optimizer)
-            scaler.update()
-            
+            self.optimizer.step()
             self.scheduler.step()
+
             total_loss += loss.item()
             progress_bar.set_postfix(loss=loss.item())
 
@@ -132,6 +155,7 @@ class Trainer:
             val_loss, val_acc = self.validate()
             print(f"Epoch {epoch+1}, Train Loss: {train_loss:.4f}, Train Accuracy: {train_acc:.4f}, Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_acc:.4f}\n")
 
+            self.save_model(epoch, val_loss)
             self.scheduler.step()
 
             # Log metrics to wandb
@@ -162,11 +186,10 @@ def main():
     )
 
     # Load the pretrained model
-    model = model_selector(model_type='timm', num_classes=num_classes, model_name=opt.model_name, pretrained=False)
-    model.load_state_dict(torch.load(opt.pretrained_model_path))
+    model = model_selector(model_type='timm', num_classes=num_classes, model_name=opt.model_name, pretrained=True)
     model.to(device)
 
-    optimizer = optim.Adam(model.parameters(), lr=opt.lr, weight_decay=opt.L2)
+    optimizer = optim.AdamW(model.parameters(), lr=opt.lr, weight_decay=opt.L2)
     scheduler = get_scheduler(optimizer, train_loader, opt.lr_decay, opt.scheduler_gamma)
     loss_fn = Loss()
 
