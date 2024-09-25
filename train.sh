@@ -10,7 +10,8 @@ L2=0.001
 early_stopping_delta=0.01
 early_stopping_patience=3
 
-cross_validation_expression=True 
+cross_validation_expression=True # 명시적 변수임. 
+AMP=True # 명시적 변수임.
 models_and_img_sizes=( 
     "resnet101 224"
 )
@@ -27,7 +28,7 @@ for lr in "${lrs[@]}"; do
                     for model_and_img_size in "${models_and_img_sizes[@]}"; do
                         model_name=$(echo $model_and_img_size | cut -d ' ' -f 1)
                         img_size=$(echo $model_and_img_size | cut -d ' ' -f 2)
-                        echo "Training with lr=$lr, batch_size=$bs, epochs=$ep, scheduler_gamma=$gm, lr_decay=$ld, model_name=$model_name, img_size=$img_size, cross_validation=$cross_validation_expression L1=$L1 L2=$L2"
+                        echo "Training with lr=$lr, batch_size=$bs, epochs=$ep, scheduler_gamma=$gm, lr_decay=$ld, model_name=$model_name, img_size=$img_size, L1=$L1, L2=$L2, cross_validation=$cross_validation_expression, AMP=$AMP"
                         python train.py --lr "$lr" --batch_size "$bs" \
                                         --epochs "$ep" --scheduler_gamma "$gm" \
                                         --lr_decay "$ld" --traindata_dir "$train_csv_file" \
@@ -37,6 +38,7 @@ for lr in "${lrs[@]}"; do
                                         --L1 "$L1" --L2 "$L2" \
                                         --early_stopping_delta "$early_stopping_delta" \
                                         --early_stopping_patience "$early_stopping_patience" \
+                                        --AMP \
                                         --cross_validation
                     done
                 done
