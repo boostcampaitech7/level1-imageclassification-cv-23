@@ -1,8 +1,8 @@
 #!/bin/bash
 
-lrs=(0.001 0.01)
+lrs=(0.01)
 batch_size=(64)
-epochs=(20 30)
+epochs=(20)
 gamma=(0.1)
 lr_decay=(4)
 L1=0.001
@@ -12,13 +12,17 @@ early_stopping_patience=3
 
 cross_validation_expression=True # 명시적 변수임. 
 AMP=True # 명시적 변수임.
+
+scheduler_type="cosine"
+min_lr=0.000001
+epochs_per_restart=5
 models_and_img_sizes=( 
-    "resnet101 224"
+    "resnext101_32x32d.fb_wsl_ig1b_ft_in1k 224"
 )
 
-train_csv_file="/data/ephemeral/home/data/train"
-traindata_info_file="/data/ephemeral/home/data/train.csv" 
-save_result_path="/data/ephemeral/home/level1/data/train_result"
+train_csv_file="/data/ephemeral/home/common_data/data/train"
+traindata_info_file="/data/ephemeral/home/common_data/data/train.csv" 
+save_result_path="/data/ephemeral/home/workspace/lv1-cv23/data/train_result"
 
 for lr in "${lrs[@]}"; do
     for bs in "${batch_size[@]}"; do
@@ -38,8 +42,10 @@ for lr in "${lrs[@]}"; do
                                         --L1 "$L1" --L2 "$L2" \
                                         --early_stopping_delta "$early_stopping_delta" \
                                         --early_stopping_patience "$early_stopping_patience" \
-                                        --AMP \
-                                        --cross_validation
+                                        --cross_validation \
+                                        --scheduler_type "$scheduler_type" \
+                                        --min_lr "$min_lr" \
+                                        --epochs_per_restart "$epochs_per_restart"
                     done
                 done
             done

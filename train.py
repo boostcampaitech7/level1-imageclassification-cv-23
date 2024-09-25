@@ -30,6 +30,11 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--L2', type=float, default=0.0)
     parser.add_argument('--early_stopping_patience', type=int, default=5)
     parser.add_argument('--early_stopping_delta', type=float, default=0.0)
+    
+    parser.add_argument('--scheduler_type', type=str, default="step")
+    parser.add_argument('--min_lr', type=float, default=0, help='Minimum learning rate for cosine scheduler')
+    parser.add_argument('--epochs_per_restart', type=int, default=1, help='Epochs per restart for cosine scheduler')
+
 
     # utils argument parser
     parser.add_argument('--traindata_dir', type = str, default="./data/train")
@@ -243,7 +248,15 @@ def run_train(opt, traindata_dir, train_df, val_df, model_name, num_classes, sav
     lr=opt.lr, weight_decay=opt.L2
     )
 
-    scheduler = get_scheduler(optimizer, train_loader, opt.lr_decay, opt.scheduler_gamma)
+    scheduler = get_scheduler(
+        optimizer, 
+        train_loader, 
+        opt.scheduler_type,
+        epochs_per_lr_decay=opt.lr_decay,
+        scheduler_gamma=opt.scheduler_gamma,
+        min_lr=opt.min_lr,
+        epochs_per_restart=opt.epochs_per_restart
+    )
 
     # 학습에 사용할 Loss를 선언.
     loss_fn = Loss()

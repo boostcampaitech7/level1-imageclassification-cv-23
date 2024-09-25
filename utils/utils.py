@@ -72,17 +72,31 @@ def test_dataloader(test_info, testdata_dir, batch_size, transform_selector, img
     )
     return test_loader
 
-def get_scheduler(optimizer, train_loader, epochs_per_lr_decay, scheduler_gamma):
+def get_scheduler(optimizer, train_loader, scheduler_type, **kwargs):
     # 한 epoch당 step 수 계산
     steps_per_epoch = len(train_loader)
-
-    scheduler_step_size = steps_per_epoch * epochs_per_lr_decay
-    scheduler = optim.lr_scheduler.StepLR(
-        optimizer, 
-        step_size=scheduler_step_size, 
-        gamma=scheduler_gamma
-    )
-    return scheduler
+    
+    if scheduler_type == 'step':
+        epochs_per_lr_decay = kwargs.get('epochs_per_lr_decay', 1)
+        scheduler_gamma = kwargs.get('scheduler_gamma', 0.1)
+        scheduler_step_size = steps_per_epoch * epochs_per_lr_decay
+        return optim.lr_scheduler.StepLR(
+            optimizer, 
+            step_size=scheduler_step_size, 
+            gamma=scheduler_gamma
+        )
+    elif scheduler_type == 'cosine':
+        epochs_per_restart = kwargs.get('epochs_per_restart', 1)
+        min_lr = kwargs.get('min_lr', 0)
+        T_0 = epochs_per_restart * steps_per_epoch
+        return optim.lr_scheduler.CosineAnnealingWarmRestarts(
+            optimizer,
+            T_0=T_0,
+            T_mult=1,
+            eta_min=min_lr
+        )
+    else:
+        raise ValueError(f"Unsupported scheduler type: {scheduler_type}")
 
 def L1_regularization(model, lambda_l1):
     l1_penalty = 0.0
