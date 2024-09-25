@@ -10,7 +10,8 @@ from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import Subset
 import pandas as pd
 
-from torch.cuda.amp import autocast, GradScaler
+from torch.cuda.amp import autocast
+from torch.cuda.amp import GradScaler
 
 from data import TransformSelector
 from src import Loss, LossVisualization, EarlyStopping
@@ -45,6 +46,7 @@ def get_args() -> argparse.Namespace:
     # model argument parser
     parser.add_argument('--model_name', type = str, default='resnet18')
     parser.add_argument('--img_size', type = str, default='224')
+    parser.add_argument('--AMP', action='store_true', help='AMP를 사용하지 않을 경우 플래그를 지우세요')
     args = parser.parse_args()
     return args
 
@@ -121,27 +123,29 @@ class Trainer:
         
         total_loss = 0.0
         progress_bar = tqdm(self.train_loader, desc="Training", leave=False)
-        
-
-        scaler = GradScaler()
         train_predictions = []
+
+        scaler = GradScaler() if opt.AMP else None
+
         for images, targets in progress_bar:
             images, targets = images.to(self.device), targets.to(self.device)
             self.optimizer.zero_grad()
 
-            with autocast():
-                outputs = self.model(images)
-                loss = self.loss_fn(outputs, targets)
-                if self.lambda_L1 > 0.0:
-                    loss += L1_regularization(self.model, self.lambda_L1)
+            if opt.AMP:
+                with autocast():
+                    outputs, loss = self.forward_step(images, targets)
+            else:
+                outputs, loss = self.forward_step(images, targets)
 
-            scaler.scale(loss).backward()
-            scaler.step(self.optimizer)
-            scaler.update()
-            
-            # loss.backward()
-            # self.optimizer.step()
-            
+            if opt.AMP:
+                scaler.scale(loss).backward()
+                scaler.step(self.optimizer)
+                scaler.update()
+
+            else:
+                loss.backward()
+                self.optimizer.step()
+
             self.scheduler.step()
             total_loss += loss.item()
             progress_bar.set_postfix(loss=loss.item())
@@ -152,6 +156,13 @@ class Trainer:
 
         return (total_loss / len(self.train_loader)) , (sum(train_predictions) / len(train_predictions))
 
+    def forward_step(self, images, targets):
+        outputs = self.model(images)
+        loss = self.loss_fn(outputs, targets)
+        if self.lambda_L1 > 0.0:
+            loss += L1_regularization(self.model, self.lambda_L1)
+        return outputs, loss
+    
     def validate(self) -> float:
         # 모델의 검증을 진행
         self.model.eval()
