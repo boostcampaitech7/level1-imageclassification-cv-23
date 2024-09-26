@@ -2,9 +2,9 @@ import os
 import argparse
 import pandas as pd
 from utils import setting_device
-from data import TransformSelector
+from data import TransformSelector, CustomDataset
 from model import model_selector
-from data import CustomDataset
+from utils import test_dataloader, parse_model_names, get_model, ensemble_inference
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -13,6 +13,7 @@ from tqdm import tqdm
 from datetime import datetime
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='parameters for accuracy per class')
@@ -25,32 +26,6 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--worst_n', type=int, default=10)
     
     return parser.parse_args()
-
-def parse_model_names(model_names_str):
-    return [name.split(',') for name in model_names_str.split(';')]
-
-def get_evaluation_model(model_type, model_path, model_name, num_classes):
-    model = model_selector(model_type=model_type, num_classes=num_classes, model_name=model_name, pretrained=False)
-    model.load_state_dict(torch.load(model_path, map_location='cpu'))
-    return model
-
-def evaluation_dataloader(eval_info, evaldata_dir, batch_size, transform_selector, img_size):
-    eval_transform = transform_selector.get_transform(img_size=img_size, is_train=False)
-
-    eval_dataset = CustomDataset(
-        root_dir=evaldata_dir,
-        info_df=eval_info,
-        transform=eval_transform,
-        is_inference=False
-    )
-
-    eval_loader = DataLoader(
-        eval_dataset, 
-        batch_size=batch_size, 
-        shuffle=False,
-        drop_last=False
-    )
-    return eval_loader
 
 def inference(model: nn.Module, device: torch.device, eval_loader: DataLoader):
     model.to(device)
@@ -69,9 +44,7 @@ def inference(model: nn.Module, device: torch.device, eval_loader: DataLoader):
     
     return all_targets, predictions
 
-def get_class_recall(true, pred):
-
-    cm = confusion_matrix(true, pred)
+def get_class_recall(cm):
 
     class_recall = []
     for i in range(len(cm)):
@@ -89,7 +62,6 @@ def get_class_recall(true, pred):
     return [round(recall, 4) for recall in class_recall]
 
 def recall_visualization(recall, file_name, save_path):
-
     fig, axs = plt.subplots(1, 1, figsize=(20, 6))
     plt.bar(x=range(len(recall)), height=recall)
     plt.title(f'{file_name} Recall')
@@ -119,12 +91,12 @@ def main(opt):
     num_classes = 500
 
     for pt_file, model_name, img_size in model_names:
-        eval_loader = evaluation_dataloader(eval_info, opt.evaldata_dir, opt.batch_size, transform_selector, img_size=int(img_size))
+        eval_loader = test_dataloader(eval_info, opt.evaldata_dir, opt.batch_size, transform_selector, img_size=int(img_size), is_inference=False)
         model_path = os.path.join(opt.save_result_path, pt_file + ".pt")
-        model = get_evaluation_model(opt.model_type, model_path, model_name, num_classes)
-        all_targets, model_predictions = inference(model=model, device=device, eval_loader=eval_loader)
-
-        class_recall = get_class_recall(true=all_targets, pred=model_predictions)
+        model = get_model(opt.model_type, model_path, model_name, num_classes)
+        all_targets, model_predictions = ensemble_inference(model=model, device=device, dataloader=eval_loader, mode='evaluation')
+        cm = confusion_matrix(all_targets, model_predictions)
+        class_recall = get_class_recall(cm)
         recall_visualization(class_recall, file_name=pt_file, save_path=opt.save_result_path)
         print(f"{pt_file} worst prediction class")
         worst_recall(class_recall, n=opt.worst_n)
