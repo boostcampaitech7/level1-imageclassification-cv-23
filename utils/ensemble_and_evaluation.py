@@ -13,7 +13,7 @@ def get_model(model_type, model_path, model_name, num_classes):
     model.load_state_dict(torch.load(model_path, map_location='cpu'))
     return model
 
-def ensemble_inference(model: nn.Module, device: torch.device, dataloader: DataLoader, mode: str):
+def ensemble_evaluation(model: nn.Module, device: torch.device, dataloader: DataLoader, mode: str):
     model.to(device)
     model.eval()
     predictions, all_targets = [], []
