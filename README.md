@@ -52,16 +52,10 @@ data/
 데이터셋은 검수 및 정제된 ImageNet Skech 데이터셋으로 이미지 수량이 많은 상위 500개의 객체로 이뤄져 있으며, 데이터는 다음과 같이 요약됩니다.
 - 각 클래스에 따라 파충류, 개 등 유사한 클래스가 다수 포함되어 있습니다.
 
-<div style="display: flex; justify-content: center; gap: 10px;">
-  <div style="text-align: center;">
-    <img src="https://github.com/user-attachments/assets/1a30b986-8b15-439b-97b5-c1f79f9f3579" width="300"/>
-    <p>n01729322 (target 32)</p>
-  </div>
-  <div style="text-align: center;">
-    <img src="https://github.com/user-attachments/assets/bcba02eb-384d-47bf-b992-f21f2e95746c" alt="포메라니안 이미지" width= "300"/>
-    <p>n01735189 (target 33)</p>
-  </div>
-</div>
+| ![n01729322](https://github.com/user-attachments/assets/1a30b986-8b15-439b-97b5-c1f79f9f3579) | ![n01735189](https://github.com/user-attachments/assets/bcba02eb-384d-47bf-b992-f21f2e95746c) |
+| :---: | :---: |
+| n01729322 (target 32) | n01735189 (target 33) |
+
 
 
 - 각 클래스 당 29~31개의 이미지를 가지고 있습니다.
