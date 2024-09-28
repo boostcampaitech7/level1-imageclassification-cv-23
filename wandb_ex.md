@@ -1,19 +1,18 @@
-
-# 🏆 Sketch 이미지 분류를 위한 Image Classification
+# 🏆 마스크 착용 상태 분류를 위한 Image Classification
 
 ## 🥇 팀 구성원
 <div align="center">
 <table>
   <tr>
-    <td align="center"><a href="https://github.com/Yeon-ksy"><img src="https://avatars.githubusercontent.com/u/124290227?v=4" width="100px;" alt=""/><br /><sub><b>김세연</b></sub><br />
+    <td align="center"><a href="https://github.com/bogeoung"><img src="https://avatars.githubusercontent.com/u/50127209?v=4?s=100" width="100px;" alt=""/><br /><sub><b>김보경</b></sub><br />
     </td>
-        <td align="center"><a href="https://github.com/jihyun-0611"><img src="https://avatars.githubusercontent.com/u/78160653?v=4" width="100px;" alt=""/><br /><sub><b>안지현</b></sub><br />
+        <td align="center"><a href="https://github.com/SangphilPark"><img src="https://avatars.githubusercontent.com/u/81211140?v=4?s=100" width="100px;" alt=""/><br /><sub><b>박상필</b></sub><br />
     </td>
-        <td align="center"><a href="https://github.com/dhfpswlqkd"><img src="https://avatars.githubusercontent.com/u/123869205?v=4" width="100px;" alt=""/><br /><sub><b>김상유</b></sub><br />
+        <td align="center"><a href="https://github.com/LTSGOD"><img src="https://avatars.githubusercontent.com/u/78635028?v=4?s=100" width="100px;" alt=""/><br /><sub><b>이태순</b></sub><br />
     </td>
-        <td align="center"><a href="https://github.com/K-ple"><img src="https://avatars.githubusercontent.com/u/140207345?v=4" width="100px;" alt=""/><br /><sub><b>김태욱</b></sub><br />
+        <td align="center"><a href="https://github.com/d-a-d-a"><img src="https://avatars.githubusercontent.com/u/109848297?v=4?s=100" width="100px;" alt=""/><br /><sub><b>임현명</b></sub><br />
     </td>
-        <td align="center"><a href="https://github.com/myooooon"><img src="https://avatars.githubusercontent.com/u/168439685?v=4" width="100px;" alt=""/><br /><sub><b>김윤서</b></sub><br />
+        <td align="center"><a href="https://github.com/CheonJiEun"><img src="https://avatars.githubusercontent.com/u/53997172?v=4?s=100" width="100px;" alt=""/><br /><sub><b>천지은</b></sub><br />
     </td>
   </tr>
 </table>
@@ -22,24 +21,26 @@
 <br />
 
 ## 😷 프로젝트 소개
-Computer Vision에서는 다양한 형태의 이미지 데이터가 활용되고 있습니다. 그 중 스케치는 인간의 상상력과 개념 이해를 반영하는 추상적이고 단순화된 형태의 이미지입니다. 이러한 스케치 데이터는 색상, 질감, 세부적인 형태가 비교적 결여되어 있으며, 대신에 기본적인 형태와 구조에 초점을 맞춥니다. 이번 프로젝트는 이러한 스케치 데이터의 특성을 이해하고 스케치 이미지를 통해 모델이 객체의 기본적인 형태와 구조를 학습하고 인식하도록 함으로써, 일반적인 이미지 데이터와의 차이점을 이해하고 또 다른 관점에 대한 모델 개발 역량을 높이는데에 초점을 두었습니다.  
+COVID-19의 확산 방지를 위해 사람들은 마스크 착용 및 사회적 거리 두기 등의 많은 노력을 하고 있습니다. 이 중 마스크 착용은 감염자로부터의 전파 경로를 차단하기 위한 중요한 방법으로, 올바르게 착용하는 것이 중요합니다. 하지만 넓은 공공장소에서 많은 사람들의 마스크 착용 상태를 수동으로 검사하는 것은 많은 비용과 시간이 요구됩니다. 이를 해결하기 위해 적은 비용으로 마스크 착용 여부를 판별 가능한 이미지 분류 모델을 개발하였습니다.
+
+이번 프로젝트는 `부스트캠프 AI Tech` CV 트랙 내에서 진행된 대회이며 F1-Score를 통해 최종평가를 진행하였습니다.
 
 <br />
 
 ## 📅 프로젝트 일정
 프로젝트 전체 일정
 
-- 2024.09.10 ~ 2024.09.26
+- 2023.04.10 ~ 2023.04.20
 
 프로젝트 세부 일정
 
-- 2024.09.10 ~ 2024.09.12 : 데이터셋 분석 및 EDA
-- 2024.09.12 ~ 2024.09.15 : Augmentation 실험
-- 2024.09.10 ~ 2024.09.26 : Model 실험
-- 2024.09.13 ~ 2024.09.14 : 코드 모듈화
-- 2024.09.24 ~ 2024.09.26 : 모델 앙상블 실험
-- 2024.09.25 ~ 2024.09.26 : 모델 평가
-- 2024.09.25 ~ 2024.09.26 : Wandb 연동
+- 2023.04.10 ~ 2023.04.13 : 데이터셋 분석 및 EDA, 프로젝트 환경 설정
+- 2023.04.13 ~ 2023.04.14 : Baseline 코드 정립, Augmentation 실험
+- 2023.04.14 ~ 2023.04.16 : Up-Sampling, 이미지 배경 제거
+- 2023.04.15 ~ 2023.04.19 : Model 실험
+- 2023.04.16 ~ 2023.04.19 : Stratified k-fold, Label Smoothing, Multi-Labeling 구현 및 실험
+- 2023.04.18 ~ 2023.04.20 : Cutmix 적용, Loss 및 나이 기준 변경 실험
+- 2023.04.20 ~ 2023.04.20 : Optuna 연동
 
 <br />
 
@@ -135,23 +136,21 @@ project/
 ## ⚙️ 설치
 
 #### Dependencies
-이 모델은 Ubuntu 20.04.6 LTS, CUDA Version: 12.2, Tesla v100 32GB의 환경에서 작성 및 테스트 되었습니다.
+이 모델은 Ubuntu 18.04.5 LTS, Tesla v100 32GB의 환경에서 작성 및 테스트 되었습니다.
 또 모델 실행에는 다음과 같은 외부 라이브러리가 필요합니다.
 
-- albumentations==1.4.4
-- matplotlib==3.8.4
-- numpy==2.1.1
-- opencv_python==4.9.0.80
-- opencv_python_headless==4.10.0.84
-- pandas==2.2.3
-- Pillow==10.4.0
-- scikit_learn==1.4.2
-- timm==1.0.9
-- torch==2.1.0
-- torchvision==0.16.0
-- tqdm==4.66.1
+- torch == 1.7.1
+- torchvision==0.8.2
+- pandas~=1.2.0
+- scikit-learn~=0.24.1
+- matplotlib==3.5.1
+- numpy~=1.21.5
+- python-dotenv~=0.16.0
+- Pillow~=7.2.0
+- sklearn~=0.0
+- timm==0.6.13
 
-Install dependencies: `pip install -r requirements.txt`
+Install dependencies: `pip3 install -r requirements.txt`
 
 <br />
 
@@ -167,4 +166,4 @@ Install dependencies: `pip install -r requirements.txt`
 <br />
 
 ## 🏅 Wrap-Up Report   
-- [Wrap-Up Report👑](https://onedrive.live.com/edit?id=1D3C82CAEE19B27B!sbb0352dc60244cd4bd69c3597c7c9088&resid=1D3C82CAEE19B27B!sbb0352dc60244cd4bd69c3597c7c9088&cid=1d3c82caee19b27b&ithint=file%2Cdocx&redeem=aHR0cHM6Ly8xZHJ2Lm1zL3cvYy8xZDNjODJjYWVlMTliMjdiL0VkeFNBN3NrWU5STXZXbkRXWHg4a0lnQnFfbU1nbTNfUVlnUFhyQ193d0otQWc_ZT16ZDRlbWI&migratedtospo=true&wdo=2)
+- [Wrap-Up Report👑](https://github.com/boostcampaitech5/level1_imageclassification-cv-08/blob/main/docs/%5BCV-08%5D%20LV1%20%EB%9E%A9%EC%97%85%20%EB%A6%AC%ED%8F%AC%ED%8A%B8.pdf)

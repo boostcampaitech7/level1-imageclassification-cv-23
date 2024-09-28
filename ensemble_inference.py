@@ -1,7 +1,7 @@
 import os
 import argparse
 import pandas as pd
-from utils import test_dataloader, setting_device, parse_model_names, get_model, ensemble_inference
+from utils import test_dataloader, setting_device, parse_model_names, get_model, ensemble_evaluation
 from data import TransformSelector
 
 import numpy as np
@@ -16,7 +16,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--model_type', type=str, default='timm')
 
     
-    parser.add_argument('--model_names', type=str, default='resnet18,224;resnet34,50;resnet50,100')
+    parser.add_argument('--model_names', type=str, default='best_resnet18,resnet18,224;best_resnet50,resnet50,100')
     
     return parser.parse_args()
 
@@ -33,7 +33,7 @@ def main(opt):
         test_loader = test_dataloader(test_info, opt.testdata_dir, opt.batch_size, transform_selector, img_size=int(img_size), is_inference=True)
         model_path = os.path.join(opt.save_result_path, pt_file + ".pt")
         model = get_model(opt.model_type, model_path, model_name, num_classes)
-        model_predictions = ensemble_inference(model=model, device=device, dataloader=test_loader, mode='ensemble')
+        model_predictions = ensemble_evaluation(model=model, device=device, dataloader=test_loader, mode='ensemble')
         ensemble_predictions.append(model_predictions)
 
     avg_predictions = np.mean(ensemble_predictions, axis=0)
