@@ -183,7 +183,6 @@ data/
 
   - **save_result_path**: 추론 결과를 저장할 경로를 지정합니다.
 
-
 ### 4. ensemble
 - 앙상블 학습을 위해 다음을 실행하세요
   ```bash
@@ -194,6 +193,17 @@ data/
   - 외에 train.sh 및 inference.sh와 동일합니다.
 
 ### 5. evaluation
+- 모델의 성능 평가를 위해 class별 recall을 반환하고 시각화합니다.
+- 모델의 평가를 위해 다음을 실행하세요
+  ```bash
+  bash evaluation.sh
+  ```
+- 하이퍼파라미터 및 인자 설명
+  - **worst_n**: 가장 recall이 낮은 n개의 class를 반환하도록 개수를 지정합니다. (Default=10)
+  - **evaldata_dir**: 평가에 사용할 데이터의 경로를 지정합니다. 평가 시에는 true값과의 비교가 필요하므로 label이 포함된 data를 선택합니다.
+
+  - **evaldata_info_file**: 평가 데이터에 대한 추가 정보를 담고 있는 파일의 경로를 지정합니다.
+  - 외에 ensemble.sh와 동일합니다.
 
 <br />
 
