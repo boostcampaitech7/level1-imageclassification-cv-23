@@ -45,7 +45,8 @@ for lr in "${lrs[@]}"; do
                                         --cross_validation \
                                         --scheduler_type "$scheduler_type" \
                                         --min_lr "$min_lr" \
-                                        --epochs_per_restart "$epochs_per_restart"
+                                        --epochs_per_restart "$epochs_per_restart" \
+                                        --AMP
                     done
                 done
             done
