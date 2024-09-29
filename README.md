@@ -1,5 +1,5 @@
 
-# 🏆 Sketch 이미지 분류를 위한 Image Classification
+# 🏆 Sketch Image Classification
 
 <br />
 
