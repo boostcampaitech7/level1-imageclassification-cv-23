@@ -155,9 +155,9 @@ project
 
   - **scheduler_type**: 사용하고자 하는 학습률 스케줄러의 종류를 cosine으로 결정합니다. (이 flag가 없으면 StepLR이 됩니다.)
 
-  - **min_lr**: 
+  - **min_lr**: CosineAnnealingWarmRestarts 스케줄러에서 사용할 최소값의 learning rate를 설정합니다. 
 
-  - **epochs_per_restart**:
+  - **epochs_per_restart**: 첫번째 restart를 위한 iteration(T_0)을 계산하기 위해 학습 과정 중 재시작을 허용할 epoch 주기를 설정합니다. 
 
   - **models_and_img_sizes**: 사용할 모델과 입력 이미지의 크기를 지정합니다. (모델 이름과 이미지 크기는 띄어쓰기로 구분됩니다.)
 
