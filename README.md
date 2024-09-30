@@ -88,41 +88,42 @@ data/
 
 ### 1. Structure
   ```bas
-  ├── data
-  │   ├── augmentation.py
-  │   ├── dataset.py
-  │   ├── DDHS_muti.ipynb
-  │   ├── __init__.py
-  │   └── readme.md
-  ├── ensemble_inference.py
-  ├── ensemble.sh
-  ├── evaluation.py
-  ├── evaluation.sh
-  ├── imgs
-  │   └── result.png
-  ├── inference.py
-  ├── inference.sh
-  ├── model
-  │   ├── __init__.py
-  │   ├── model.py
-  │   └── readme.md
-  ├── README.md
-  ├── src
-  │   ├── early_stopping.py
-  │   ├── __init__.py
-  │   ├── loss.py
-  │   ├── loss_visualization.py
-  │   └── readme.md
-  ├── sweep_config.yaml
-  ├── sweep_run.sh
-  ├── train.py
-  ├── train.sh
-  ├── utils
-  │   ├── ensemble_and_evaluation.py
-  │   ├── __init__.py
-  │   └── utils.py
-  ├── wandb_ex.md
-  └── wandb_train.py
+project
+├── data
+│   ├── augmentation.py
+│   ├── dataset.py
+│   ├── DDHS_muti.ipynb
+│   ├── __init__.py
+│   └── readme.md
+├── ensemble_inference.py
+├── ensemble.sh
+├── evaluation.py
+├── evaluation.sh
+├── imgs
+│   └── result.png
+├── inference.py
+├── inference.sh
+├── model
+│   ├── __init__.py
+│   ├── model.py
+│   └── readme.md
+├── README.md
+├── src
+│   ├── early_stopping.py
+│   ├── __init__.py
+│   ├── loss.py
+│   ├── loss_visualization.py
+│   └── readme.md
+├── sweep_config.yaml
+├── sweep_run.sh
+├── train.py
+├── train.sh
+├── utils
+│   ├── ensemble_and_evaluation.py
+│   ├── __init__.py
+│   └── utils.py
+├── wandb_ex.md
+└── wandb_train.py
   ```
 
 ### 2. train
