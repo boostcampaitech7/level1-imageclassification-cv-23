@@ -227,4 +227,4 @@ project
 </div>
 
 ## ⚡️ Detail   
-- 프로젝트에 대한 자세한 내용은 [Wrap-Up Report](https://onedrive.live.com/edit?id=1D3C82CAEE19B27B!sbb0352dc60244cd4bd69c3597c7c9088&resid=1D3C82CAEE19B27B!sbb0352dc60244cd4bd69c3597c7c9088&cid=1d3c82caee19b27b&ithint=file%2Cdocx&redeem=aHR0cHM6Ly8xZHJ2Lm1zL3cvYy8xZDNjODJjYWVlMTliMjdiL0VkeFNBN3NrWU5STXZXbkRXWHg4a0lnQnFfbU1nbTNfUVlnUFhyQ193d0otQWc_ZT16ZDRlbWI&migratedtospo=true&wdo=2) 에서 확인할 수 있습니다.
+- 프로젝트에 대한 자세한 내용은 [Wrap-Up Report](./utils/CV기초대회_CV_팀 리포트(23조).pdf) 에서 확인할 수 있습니다.
