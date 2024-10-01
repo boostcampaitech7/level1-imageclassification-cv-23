@@ -1,0 +1,38 @@
+program: wandb_train.py
+method: random
+metric: 
+  name: val_loss
+  goal: minimize
+parameters:
+  lr: 
+    min: 0.00001 
+    max: 0.01
+  batch_size: 
+    values: [4, 8, 16]
+  epochs: 
+    min: 2 
+    max: 10
+  scheduler_gamma: 
+    min: 0.1 
+    max: 0.5
+  lr_decay: 
+    min: 1
+    max: 6
+  L2: 
+    min: 0.0
+    max: 0.0001
+command:
+  - ${env}
+  - python
+  - ${program}
+  - ${args}
+  - --traindata_dir
+  - /data/ephemeral/home/common_data/data/train
+  - --traindata_info_file
+  - /data/ephemeral/home/common_data/data/train.csv
+  - --save_result_path
+  - /data/ephemeral/home/wandb-test/level1-cv-23/train_result
+  - --model_name
+  - regnety_1280.swag_ft_in1k
+  - --img_size
+  - "384"
