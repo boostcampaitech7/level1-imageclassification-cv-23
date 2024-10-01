@@ -227,4 +227,4 @@ project
 </div>
 
 ## ⚡️ Detail   
-- 프로젝트에 대한 자세한 내용은 [Wrap-Up Report](./utils/CV기초대회_CV_팀 리포트(23조).pdf) 에서 확인할 수 있습니다.
+- 프로젝트에 대한 자세한 내용은 [Wrap-Up Report](https://github.com/boostcampaitech7/level1-imageclassification-cv-23/blob/b21747b156fd301b04d122964c8d4433777f75b7/utils/CV%EA%B8%B0%EC%B4%88%EB%8C%80%ED%9A%8C_CV_%ED%8C%80%20%EB%A6%AC%ED%8F%AC%ED%8A%B8(23%EC%A1%B0).pdf) 에서 확인할 수 있습니다.
